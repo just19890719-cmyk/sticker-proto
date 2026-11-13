@@ -85,7 +85,7 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
 .ptxt{font-size:13px;text-align:center;margin-top:6px;white-space:pre-line}
 
 /* 編輯 */
-.stage{position:relative;aspect-ratio:1;border:2.5px solid var(--k);border-radius:20px;box-shadow:3px 4px 0 var(--k);display:flex;align-items:center;justify-content:center;padding:14px;
+.stage{position:relative;aspect-ratio:1;overflow:hidden;border:2.5px solid var(--k);border-radius:20px;box-shadow:3px 4px 0 var(--k);display:flex;align-items:center;justify-content:center;padding:14px;
   background-color:#fff;background-image:linear-gradient(45deg,#EFE6D6 25%,transparent 25%,transparent 75%,#EFE6D6 75%),linear-gradient(45deg,#EFE6D6 25%,transparent 25%,transparent 75%,#EFE6D6 75%);background-size:20px 20px;background-position:0 0,10px 10px}
 .stage canvas{max-width:100%;max-height:100%;display:block;touch-action:none}
 .stage canvas.txdrag{cursor:grab}
@@ -764,8 +764,9 @@ function txLoad(o){const m={'#F0567A':'rd','#2EA9DF':'bu','#3A2E39':'dk','#FFD84
 function resetText(){txLoad(null);setEdge('w');setPane('st')}
 /* 編輯區分頁 */
 let PANE='st';
-function setPane(p){PANE=p;$('#edTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
-  $('#stBox').hidden=p!=='st';$('#txBox').hidden=p!=='tx';txSelPos()}
+function setPane(p){
+  const v=$('#cv').closest('.view'),y=v?v.scrollTop:0;PANE=p;$('#edTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  $('#stBox').hidden=p!=='st';$('#txBox').hidden=p!=='tx';if(v)v.scrollTop=y;txSelPos()}
 $('#edTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{setPane(b.dataset.p);if(b.dataset.p==='tx'&&!TX.text.trim())$('#txIn').focus()});
 // 在「文字」分頁時，用虛線框標出正在改的文字
 function txSelPos(){const s=$('#txSel'),cv=$('#cv');
@@ -777,7 +778,15 @@ addEventListener('resize',()=>txSelPos());
 function showComposite(){
   curCanvas=compose();
   const cv=$('#cv');cv.width=curCanvas.width;cv.height=curCanvas.height;cv.getContext('2d').drawImage(curCanvas,0,0);
-  cv.classList.toggle('txdrag',!!txGeo);txSelPos();
+  lockView(cv);cv.classList.toggle('txdrag',!!txGeo);txSelPos();
+}
+// 拖文字時畫布會變大，鎖住比例與位置，貼紙才不會跟著縮放、移動；放開後再重新置中
+let VLOCK=null;
+function lockView(cv){const s=cv.style;
+  if(!VLOCK){s.width=s.height=s.maxWidth=s.maxHeight=s.transform='';return}
+  const k=VLOCK.k,px=txGeo?txGeo.px:0,py=txGeo?txGeo.py:0;
+  Object.assign(s,{maxWidth:'none',maxHeight:'none',width:cv.width*k+'px',height:cv.height*k+'px',transform:''});
+  const r=cv.getBoundingClientRect();s.transform=`translate(${VLOCK.bx-px*k-r.left}px,${VLOCK.by-py*k-r.top}px)`;
 }
 function drawEdit(){
   if(ER.on){endErase();return}
@@ -800,11 +809,14 @@ $('#txOut').querySelectorAll('button').forEach(b=>b.onclick=()=>{TX.ok=b.dataset
   cv.addEventListener('pointerdown',e=>{const p=pt(e),m=12*cv.width/cv.getBoundingClientRect().width;
     if(ER.on)return;const hit=g=>g&&!(p.x<g.x0-m||p.x>g.x1+m||p.y<g.y0-m||p.y>g.y1+m);
     if(!hit(txGeo)){setPane('st');return}setPane('tx');const o=TX;
-    drag={sx:p.x,sy:p.y,ox:o.x,oy:o.y,g:txGeo,o};cv.setPointerCapture(e.pointerId);e.preventDefault()});
+    const r=cv.getBoundingClientRect(),k=r.width/cv.width;VLOCK={k,bx:r.left+txGeo.px*k,by:r.top+txGeo.py*k};
+    drag={sx:p.x,sy:p.y,ox:o.x,oy:o.y,g:txGeo,o};try{cv.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
   cv.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e),g=drag.g,o=drag.o;
     // 拖曳時用開始那一刻的畫布比例換算，避免畫布變大時亂跳
     o.x=Math.min(1.1,Math.max(-.1,drag.ox+(p.x-drag.sx)/g.bw));o.y=Math.min(1.15,Math.max(-.15,drag.oy+(p.y-drag.sy)/g.bh));txRedraw()});
-  const end=()=>{drag=null};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+  const end=()=>{if(!drag)return;drag=null;VLOCK=null;cancelAnimationFrame(rqT);showComposite()};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+  // 蘋果手機：拖文字或擦除時，不讓整頁跟著捲動
+  cv.addEventListener('touchmove',e=>{if(drag||ER.on)e.preventDefault()},{passive:false});
 })();
 /* ---------- 橡皮擦：直接在摳好的主體上擦，擦完重算白邊 ---------- */
 const ER={on:false,undo:[],dirty:false};
