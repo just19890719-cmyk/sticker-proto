@@ -261,10 +261,9 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
           </div>
         </div>
         <div class="acts">
-          <button class="sk" id="bCopy">複製圖片</button>
-          <button class="sk blu" id="bSave">存成圖片</button>
           <button class="sk pri full" id="bToBook">貼進貼紙本</button>
           <button class="sk full" id="bRe">重拍</button>
+          <button class="sk blu full" id="bShare">分享圖片</button>
         </div>
       </section>
 
@@ -286,7 +285,7 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
           <span id="pInfo" class="grow" style="text-align:center;font-weight:700;font-size:14px"></span>
           <button class="sk" id="pNext">›</button>
           <button class="sk yel" id="pAdd">＋頁</button>
-          <button class="sk" id="pExp">存圖</button>
+          <button class="sk" id="pExp">分享</button>
         </div>
         <div class="sub">點一下貼紙就貼到這頁　拖曳移動・黃點旋轉縮放</div>
         <div class="tray" id="tray"></div>
@@ -315,10 +314,10 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
       <h3>這一版可以做什麼</h3>
       <ul>
         <li>拍照或選照片 → 自動摳出主體（人、寵物、物品）</li>
-        <li>加白邊（粗細可調）、陰影，存成透明背景圖片</li>
-        <li>貼紙本：建立多本、多頁，貼紙可拖曳、旋轉、縮放，整頁存成圖片</li>
+        <li>加白邊（粗細可調）、陰影，分享透明背景圖片</li>
+        <li>貼紙本：建立多本、多頁，貼紙可拖曳、旋轉、縮放，整頁分享成圖片</li>
         <li>可選擇加文字；「立體感」讓貼紙有紙張厚度與光影</li>
-        <li>複製圖片，可以貼到聊天室</li>
+        <li>「分享圖片」可以傳到聊天室、存到相簿</li>
         <li>「我的貼紙」點一張可以重新編輯（例如改錯字），貼紙本裡的會一起更新</li>
       </ul>
     </div>
@@ -775,8 +774,11 @@ function txSelPos(){const s=$('#txSel'),cv=$('#cv');
   const L=r.left-R.left-st.clientLeft,T=r.top-R.top-st.clientTop;
   Object.assign(s.style,{left:L+txGeo.x0*k-3+'px',top:T+txGeo.y0*k-3+'px',width:(txGeo.x1-txGeo.x0)*k+6+'px',height:(txGeo.y1-txGeo.y0)*k+6+'px'});s.hidden=false}
 addEventListener('resize',()=>txSelPos());
+// 畫面停下來後先把圖片備好，按「分享圖片」才能馬上叫出分享選單
+let curBlob=null,blobT=0;
 function showComposite(){
-  curCanvas=compose();
+  curCanvas=compose();curBlob=null;clearTimeout(blobT);
+  {const c=curCanvas;blobT=setTimeout(()=>toBlob(c).then(b=>{if(c===curCanvas)curBlob=b}),300)}
   const cv=$('#cv');cv.width=curCanvas.width;cv.height=curCanvas.height;cv.getContext('2d').drawImage(curCanvas,0,0);
   lockView(cv);cv.classList.toggle('txdrag',!!txGeo);txSelPos();
 }
@@ -878,8 +880,7 @@ async function backFromEdit(){
   $('#bkName').textContent=cur.name;show('book');renderPage();renderTray();
 }
 $('#bRe').onclick=()=>{if(editId){setEditMode(null);backFromEdit()}else show('shoot')};
-$('#bSave').onclick=async()=>{download(await toBlob(curCanvas),`貼紙_${stamp()}.png`);toast('已存成透明背景圖片')};
-$('#bCopy').onclick=()=>copyImg(toBlob(curCanvas));
+$('#bShare').onclick=async()=>shareImg(curBlob||await toBlob(curCanvas),`貼紙_${stamp()}.png`);
 // 連同原始摳圖資料與設定一起存，之後才能重新編輯
 async function saveSticker(){
   const blob=await toBlob(curCanvas);const id=editId||uid();
@@ -906,11 +907,20 @@ async function editSticker(st,from){
   setEditMode(st.id,st.at);drawEdit();show('edit');
 }
 
-['#bSave','#bCopy','#bToBook','#bRe'].forEach(k=>{const b=$(k),f=b.onclick;b.onclick=e=>{if(ER.on)endErase();return f(e)}});
-/* ---------- 複製 ---------- */
-async function copyImg(blob){
-  try{await navigator.clipboard.write([new ClipboardItem({'image/png':Promise.resolve(blob)})]);toast('已複製，可以到聊天室貼上');return true}
-  catch(e){console.warn(e);toast('這個瀏覽器不能直接複製圖片，請改按「存成圖片」');return false}
+['#bShare','#bToBook','#bRe'].forEach(k=>{const b=$(k),f=b.onclick;b.onclick=e=>{if(ER.on)endErase();return f(e)}});
+/* ---------- 分享 ---------- */
+// 叫出手機的分享選單（聊天室、相簿等）；不支援分享的瀏覽器改成存檔
+// 蘋果手機要求按下後馬上分享，圖片來不及準備時，先備好再請使用者按一次
+let shareReady=null;
+async function shareImg(blob,name,key){
+  shareReady=null;const f=new File([blob],name,{type:blob.type||'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){
+    try{await navigator.share({files:[f]});return}
+    catch(e){if(e.name==='AbortError')return;
+      if(e.name==='NotAllowedError'){shareReady={key,blob,name};toast('圖片準備好了，請再按一次分享');return}
+      console.warn(e)}
+  }
+  download(blob,name);toast('這個瀏覽器不能分享，已改成存成圖片');
 }
 
 /* ---------- 貼紙本 ---------- */
@@ -996,7 +1006,7 @@ function addItem(sid){
   const it={id:uid(),sid,x:.5+((n%3)-1)*.18,y:.45+((Math.floor(n/3)%3)-1)*.2,w:.42,rot:Math.round(Math.random()*14-7),z};
   items.push(it);selId=it.id;saveBook();renderPage();
 }
-let saveT;function saveBook(){clearTimeout(saveT);saveT=setTimeout(()=>put('books',cur),250)}
+let saveT;function saveBook(){shareReady=null;clearTimeout(saveT);saveT=setTimeout(()=>put('books',cur),250)}
 function renderPage(){
   const pg=$('#page'),p=cur.pages[pageIx];
   const d=new Date(cur.at);
@@ -1072,6 +1082,7 @@ $('#pPrev').onclick=()=>flipTo(pageIx-1);
 $('#pNext').onclick=()=>flipTo(pageIx+1);
 $('#pAdd').onclick=()=>{if(flipping)return;cur.pages.push({items:[]});saveBook();flipTo(cur.pages.length-1);toast('加了一頁')};
 $('#pExp').onclick=async()=>{
+  const key=cur.id+'/'+pageIx;if(shareReady&&shareReady.key===key){const r=shareReady;return shareImg(r.blob,r.name,key)}
   const W=1080,H=1440,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
   x.fillStyle='#FBF9F5';x.fillRect(0,0,W,H);
   x.fillStyle='#E2DBD0';for(let y=27;y<H;y+=54)for(let i=27;i<W;i+=54){x.beginPath();x.arc(i,y,3.3,0,7);x.fill()}
@@ -1086,7 +1097,7 @@ $('#pExp').onclick=async()=>{
     const w=it.w*W,h=w*bm.height/bm.width;
     x.save();x.translate(it.x*W,it.y*H);x.rotate(it.rot*Math.PI/180);if(it.flip)x.scale(-1,1);x.shadowColor='rgba(58,46,57,.3)';x.shadowBlur=8;x.shadowOffsetY=6;x.drawImage(bm,-w/2,-h/2,w,h);x.restore();
   }
-  download(await toBlob(c,'image/jpeg'),`貼紙本_${cur.name}_第${pageIx+1}頁.jpg`);toast('這一頁已存成圖片');
+  shareImg(await toBlob(c,'image/jpeg'),`貼紙本_${cur.name}_第${pageIx+1}頁.jpg`,key);
 };
 
 /* ---------- 我的貼紙 ---------- */
@@ -1109,21 +1120,19 @@ async function renderMine(){
     await del('stickers',b.dataset.id);toast('已刪除');renderMine();
   });
 }
-// 點一張貼紙：編輯、複製、存圖
+// 點一張貼紙：修改、關閉、分享
 function mineMenu(st){
   if(!st)return;
   const box=document.createElement('div');
   box.innerHTML=`<h4>這張貼紙</h4><div class="mprev"><img src="${sUrl(st)}" alt="貼紙"></div>
   <div class="acts">
     <button class="sk pri full" id="mEd">修改（文字、白邊）</button>
-    <button class="sk" id="mCp">複製圖片</button>
-    <button class="sk blu" id="mSv">存成圖片</button>
     <button class="sk full" id="mCx">關閉</button>
+    <button class="sk blu full" id="mSh">分享圖片</button>
   </div>${st.src?'':'<div class="hint">這張是舊版存的，不能重新編輯</div>'}`;
   const ed=box.querySelector('#mEd');if(!st.src)ed.disabled=true;
   ed.onclick=()=>{closeSheet();editSticker(st)};
-  box.querySelector('#mCp').onclick=()=>copyImg(st.blob);
-  box.querySelector('#mSv').onclick=()=>{download(st.blob,`貼紙_${stamp()}.png`);toast('已存成透明背景圖片')};
+  box.querySelector('#mSh').onclick=()=>shareImg(st.blob,`貼紙_${stamp()}.png`);
   box.querySelector('#mCx').onclick=closeSheet;
   openSheet(box);
 }
