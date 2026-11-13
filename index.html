@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="相機貼紙">
 <title>相機貼紙原型</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Huninn&family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -31,7 +35,7 @@ button{font:inherit;color:inherit}
 .ph{--c:#FFF8EC;--k:#3A2E39;--p:#F0567A;--pl:#FFD0DC;--b:#2EA9DF;--bl:#CDEFFC;--y:#FFD84D;--yl:#FFF1B8;--g:#6CC08B;--s:#7A6B78;
   width:360px;height:760px;border-radius:46px;background:#2A2330;padding:10px;position:relative;color:var(--k);flex:none;
   box-shadow:0 0 0 3px #4A4150,0 26px 50px -12px rgba(40,20,40,.5)}
-@media (max-width:400px){.ph{width:100%;height:calc(100vh - 20px);min-height:620px;border-radius:30px;padding:6px}.ph .scr{inset:6px;border-radius:24px}}
+@media (max-width:600px){body{overscroll-behavior:none}.wrap{padding:0;gap:0;display:block}.side{display:none}.ph{width:100vw;height:100vh;height:100dvh;min-height:0;border-radius:0;padding:0;box-shadow:none}.ph .scr{inset:0;border-radius:0}.ph .view{padding-top:calc(14px + env(safe-area-inset-top))}.ph nav.bt{padding-bottom:calc(8px + env(safe-area-inset-bottom))}.ph .toast{bottom:calc(86px + env(safe-area-inset-bottom))}}
 .scr{position:absolute;inset:10px;border-radius:36px;overflow:hidden;background:#D9BF97;background-image:radial-gradient(rgba(120,84,46,.16) 1px,transparent 1.3px),radial-gradient(rgba(255,255,255,.18) 1px,transparent 1.3px);background-size:9px 9px,13px 13px;background-position:0 0,4px 6px; /* 牛皮紙桌墊，跟貼紙本內頁的米白點點區隔 */display:flex;flex-direction:column}
 .view{flex:1;overflow-y:auto;overflow-x:hidden;padding:30px 14px 12px;display:none;scrollbar-width:none;position:relative}
 .view::-webkit-scrollbar{display:none}
@@ -334,11 +338,22 @@ const urlCache=new Map();
 function sUrl(st){if(!urlCache.has(st.id))urlCache.set(st.id,URL.createObjectURL(st.blob));return urlCache.get(st.id)}
 
 /* ---------- 摳圖模型 ---------- */
-let T,model,processor,loading,devInfo="",skip=0,curIx=0;
-const MODES=[{device:'webgpu',dtype:'fp16',n:'顯示卡加速',gpu:1},{device:'wasm',dtype:'fp16',n:'一般運算（半精度）'},{device:'wasm',dtype:'fp32',n:'一般運算'}];
-try{skip=+localStorage.getItem('stk-skip')||0}catch(e){}
+let T,model,processor,loading,devInfo="",skip=0,curIx=0,ORT,small;
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+// iPhone／iPad（新 iPad 會假裝成 Mac）
+const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+// 最後一種是 4.5 MB 的小模型（U-2-Netp，Apache-2.0），給記憶體不夠的手機用，邊緣較粗
+const ORT_DIR='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/';
+const SMALL_URL='https://huggingface.co/BritishWerewolf/U-2-Netp/resolve/main/onnx/model.onnx';
+const MODES=[{device:'webgpu',dtype:'fp16',n:'顯示卡加速',gpu:1},{device:'wasm',dtype:'fp16',n:'一般運算（半精度）',big:1},{device:'wasm',dtype:'fp32',n:'一般運算',big:1},{small:1,n:'手機省記憶體版（邊緣較粗）'}];
+skip=Math.min(+LS.get('stk-skip')||0,MODES.length-1);
+if(/[?&]mode=small/.test(location.search))skip=MODES.length-1; // 測試用
+// 網頁在摳圖途中被系統強制關掉（記憶體不足）時，抓不到錯誤；
+// 所以摳圖前先記下「正在用哪一種」，下次開啟若還留著，就代表上次當掉，自動改用下一種
+let crashed=false;
+{const b=LS.get('stk-busy');if(b!==null){skip=Math.min(Math.max(skip,+b+1),MODES.length-1);LS.set('stk-skip',skip);LS.del('stk-busy');crashed=true}}
 // 某種運算方式在執行時失敗：換下一種重載
-function dropMode(){skip=curIx+1;try{localStorage.setItem('stk-skip',skip)}catch(e){}model=null;loading=null;return skip<MODES.length}
+function dropMode(){skip=curIx+1;LS.set('stk-skip',skip);LS.del('stk-busy');model=null;small=null;loading=null;return skip<MODES.length}
 function prog(p){
   if(p.status==='progress'&&p.file&&p.file.endsWith('.onnx')){
     const pct=p.total?p.loaded/p.total*100:p.progress||0;
@@ -346,28 +361,57 @@ function prog(p){
     $('#ptxt').textContent=`第一次使用，下載摳圖模型 ${(p.loaded/1048576).toFixed(0)} / ${(p.total/1048576).toFixed(0)} MB`;
   }
 }
+async function loadSmall(){
+  ORT=await import(ORT_DIR+'ort.wasm.min.mjs');
+  ORT.env.wasm.wasmPaths=ORT_DIR;ORT.env.wasm.numThreads=1;
+  const buf=await (await fetch(SMALL_URL)).arrayBuffer();
+  small=await ORT.InferenceSession.create(new Uint8Array(buf),{executionProviders:['wasm']});
+}
 async function loadModel(){
-  if(model)return;
+  if(model||small)return;
   if(!loading)loading=(async()=>{
     $('#ptxt').textContent='載入摳圖程式…';
-    T=await import(TJS);
     let gpu=false;
     // 這個模型在顯示卡上需要 17 個儲存緩衝區；上限不夠的顯示卡直接改用一般運算
     try{const ad=navigator.gpu&&await navigator.gpu.requestAdapter();gpu=!!ad&&ad.limits.maxStorageBuffersPerShaderStage>=17}catch(e){}
-    const tries=MODES.slice(skip).filter(o=>gpu||!o.gpu);
+    // iPhone 的網頁記憶體上限低，大模型（含顯示卡加速）實測會讓 Safari 當掉，直接用小模型
+    const tries=MODES.slice(skip).filter(o=>(gpu||!o.gpu)&&!(IOS&&!o.small));
     let err;
     for(const o of tries){
-      try{model=await T.AutoModel.from_pretrained(MODEL_ID,{device:o.device,dtype:o.dtype,progress_callback:prog});devInfo=o.n;curIx=MODES.indexOf(o);break}
-      catch(e){err=e;console.warn('模型載入失敗，改用下一種方式',o,e)}
+      const ix=MODES.indexOf(o);LS.set('stk-busy',ix);
+      try{
+        if(o.small)await loadSmall();
+        else{T=T||await import(TJS);model=await T.AutoModel.from_pretrained(MODEL_ID,{device:o.device,dtype:o.dtype,progress_callback:prog});processor=await T.AutoProcessor.from_pretrained(MODEL_ID)}
+        devInfo=o.n;curIx=ix;break}
+      catch(e){err=e;model=small=null;console.warn('模型載入失敗，改用下一種方式',o,e)}
     }
-    if(!model)throw err;
-    processor=await T.AutoProcessor.from_pretrained(MODEL_ID);
+    if(!model&&!small){LS.del('stk-busy');throw err||new Error('沒有可用的運算方式')}
   })().catch(e=>{loading=null;throw e});
   return loading;
 }
 function half2float(h){const s=(h&0x8000)?-1:1,e=(h>>10)&31,f=h&1023;if(e===0)return s*Math.pow(2,-14)*(f/1024);if(e===31)return f?NaN:s*Infinity;return s*Math.pow(2,e-15)*(1+f/1024)}
+// 把模型輸出的小遮罩（ImageData 的透明度）放大成跟照片一樣大
+function upMask(id,cv){
+  const a=new OffscreenCanvas(id.width,id.height);a.getContext('2d').putImageData(id,0,0);
+  const b=new OffscreenCanvas(cv.width,cv.height);const bx=b.getContext('2d');bx.imageSmoothingQuality='high';bx.drawImage(a,0,0,cv.width,cv.height);
+  const d=bx.getImageData(0,0,cv.width,cv.height).data,m=new Uint8Array(cv.width*cv.height);
+  for(let i=0;i<m.length;i++)m[i]=d[i*4+3];
+  return m;
+}
+async function segSmall(cv){
+  const S=320,c=new OffscreenCanvas(S,S),x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(cv,0,0,S,S);
+  const d=x.getImageData(0,0,S,S).data,N=S*S,f=new Float32Array(3*N),mean=[.485,.456,.406],std=[.229,.224,.225];
+  for(let i=0;i<N;i++)for(let k=0;k<3;k++)f[k*N+i]=(d[i*4+k]/255-mean[k])/std[k];
+  const out=await small.run({[small.inputNames[0]]:new ORT.Tensor('float32',f,[1,3,S,S])});
+  const p=(out['1959']||out[small.outputNames[0]]).data;
+  let lo=Infinity,hi=-Infinity;for(let i=0;i<N;i++){if(p[i]<lo)lo=p[i];if(p[i]>hi)hi=p[i]}
+  const id=new ImageData(S,S),r=hi-lo||1;
+  for(let i=0;i<N;i++)id.data[i*4+3]=Math.round((p[i]-lo)/r*255);
+  return upMask(id,cv);
+}
 // 回傳與輸入同尺寸的透明度遮罩（0～255）
 async function segment(cv){
+  if(small)return segSmall(cv);
   const img=await T.RawImage.fromBlob(await toBlob(cv));
   const {pixel_values}=await processor(img);
   const out=await model({input_image:pixel_values});
@@ -377,11 +421,7 @@ async function segment(cv){
   const id=new ImageData(mw,mh);
   const isU16=raw instanceof Uint16Array;
   for(let i=0;i<n;i++){const v=isU16?half2float(raw[i]):Number(raw[i]);id.data[i*4+3]=255/(1+Math.exp(-v))}
-  const a=new OffscreenCanvas(mw,mh);a.getContext('2d').putImageData(id,0,0);
-  const b=new OffscreenCanvas(cv.width,cv.height);const bx=b.getContext('2d');bx.imageSmoothingQuality='high';bx.drawImage(a,0,0,cv.width,cv.height);
-  const d=bx.getImageData(0,0,cv.width,cv.height).data,m=new Uint8Array(cv.width*cv.height);
-  for(let i=0;i<m.length;i++)m[i]=d[i*4+3];
-  return m;
+  return upMask(id,cv);
 }
 
 /* ---------- 白邊貼紙運算 ---------- */
@@ -574,7 +614,8 @@ async function process(c){
       t1=performance.now();
       $('#ptxt').textContent='正在找出主體…';$('#pbar').style.width='100%';
       await new Promise(r=>setTimeout(r,30));
-      try{m=await segment(c);break}
+      LS.set('stk-busy',curIx);
+      try{m=await segment(c);LS.del('stk-busy');break}
       catch(e){console.warn('摳圖執行失敗：',devInfo,e);const wasGpu=MODES[curIx].gpu;if(!dropMode())throw e;
         // 顯示卡模式失敗後，同一個頁面內的其他模式也會受影響：先存照片，重新整理後自動續做
         if(wasGpu){try{sessionStorage.setItem('stk-resume',c.toDataURL('image/jpeg',.92))}catch(x){}location.reload();return}$('#ptxt').textContent='這台電腦不支援「'+devInfo+'」，改用其他方式…';$('#pbar').style.width='0%'}
@@ -928,6 +969,7 @@ function mineMenu(st){
 }
 /* ---------- 換運算方式後自動續做 ---------- */
 (()=>{let u;try{u=sessionStorage.getItem('stk-resume');sessionStorage.removeItem('stk-resume')}catch(e){}
+  if(crashed)setTimeout(()=>{toast('上次摳圖記憶體不足，已改用省記憶體方式');clearTimeout(toastT);toastT=setTimeout(()=>$('#toast').classList.remove('on'),4000)},300);
   if(!u)return;const im=new Image();im.onload=()=>{const c=fit(im.width,im.height);c.getContext('2d').drawImage(im,0,0,c.width,c.height);process(c)};im.src=u})();
 </script>
 </body>
