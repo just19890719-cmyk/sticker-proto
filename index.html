@@ -64,7 +64,8 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
 /* 拍照 */
 .vf{position:relative;aspect-ratio:3/4;border:2.5px solid var(--k);border-radius:20px;overflow:hidden;background:#2A2330;box-shadow:3px 4px 0 var(--k)}
 .vf video{width:100%;height:100%;object-fit:cover;display:block}
-.vf video.mir{transform:scaleX(-1)}
+.vf{touch-action:none}
+#zLbl{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(42,35,48,.7);color:#fff;border-radius:99px;padding:3px 12px;font-size:14px;font-weight:700;pointer-events:none}
 .vf .ph0{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#FFF1B8;text-align:center;padding:20px;font-size:14px}
 .vf .ph0 .big{font-size:46px}
 .vf .corner{position:absolute;width:26px;height:26px;border:3px solid #fff;opacity:.85}
@@ -89,9 +90,12 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
 .stage canvas{max-width:100%;max-height:100%;display:block;touch-action:none}
 .stage canvas.txdrag{cursor:grab}
 .stage canvas.erasing{cursor:crosshair}
-#txBox{border-top:2px dashed #E3D6C2;margin-top:6px;padding-top:8px}
-#txBox .cols{margin:6px 0}
-#txBox .cols button{width:28px;height:28px}
+/* 編輯區分頁：點貼紙改貼紙，點文字改文字 */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#F3EADB;border-radius:99px;padding:4px;margin:0 0 8px}
+.tabs button{border:0;background:transparent;border-radius:99px;padding:7px 0;font:inherit;font-weight:700;color:var(--s);cursor:pointer}
+.tabs button.on{background:#fff;color:var(--k);box-shadow:0 0 0 2px var(--k)}
+#txSel{position:absolute;border:2px dashed var(--p);border-radius:10px;pointer-events:none;z-index:1}
+#txBox .cols{margin:4px 0 8px}
 .hint{font-size:12px;color:var(--s);font-weight:500}
 .ctl{margin-top:12px;background:#fff;border:2.5px solid var(--k);border-radius:16px;padding:8px 12px;font-size:14px;font-weight:700}
 .ctl input[type=range]{width:100%;accent-color:var(--p)}
@@ -149,8 +153,8 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
 .it .dl{left:-16px;top:-16px;background:var(--p);color:#fff}
 .it .fp{right:-16px;top:-16px;background:#fff;font-size:14px}
 .it .ed{left:-16px;bottom:-16px;background:#7CC4EC;font-size:14px}
-#edgeCol{flex-wrap:wrap;gap:7px}
-#edgeCol button{width:30px;height:30px;font-size:14px;line-height:1;color:#FFD84D;padding:0}
+#edgeCol,#txCol,#txOut{flex-wrap:wrap;gap:7px}
+#edgeCol button,#txCol button,#txOut button{width:30px;height:30px;font-size:14px;line-height:1;color:#FFD84D;padding:0}
 .it img{transition:transform .2s}
 .pgbar{display:flex;align-items:center;gap:6px;margin:10px 0}
 .pgbar .sk{padding:4px 10px}
@@ -195,6 +199,7 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
         <h2 class="ttl">拍貼紙 <small>人、寵物、物品都可以</small></h2>
         <div class="vf" id="vf">
           <video id="vid" playsinline muted hidden></video>
+          <div id="zLbl" hidden></div>
           <div class="ph0" id="vf0"><div class="big">📷</div><div>按「開鏡頭」拍照<br>或從相簿選一張照片</div></div>
         </div>
         <div class="shoot">
@@ -223,6 +228,7 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
             <button class="ib" id="bErase" aria-label="橡皮擦"></button>
           </div>
           <div id="erRing" hidden></div>
+          <div id="txSel" hidden></div>
         </div>
         <div class="ctl" id="erBox" hidden>
           <div class="row"><span class="grow">筆刷大小</span><span id="erVal">中</span></div>
@@ -230,21 +236,28 @@ nav.bt button.on{color:var(--k);background:var(--yl)}
           <div class="hint">用手指塗掉摳錯的地方，擦好按右上角的打勾</div>
         </div>
         <div class="ctl" id="mainCtl">
-          <div class="row"><span class="grow">白邊粗細</span><span id="tVal">中</span></div>
-          <input type="range" id="thick" min="0" max="6" step="0.5" value="3" aria-label="白邊粗細">
-          <div class="row"><span class="grow">外框顏色</span><span id="eName">白色</span></div>
-          <div class="cols" id="edgeCol"></div>
-          <div class="chks">
-          <label class="chk"><input type="checkbox" id="shadow" checked>加陰影</label>
-          <label class="chk"><input type="checkbox" id="depth" checked>立體感</label>
-          <label class="chk"><input type="checkbox" id="txOn">加文字</label>
+          <div class="tabs" id="edTabs"><button data-p="st" class="on">貼紙</button><button data-p="tx">文字</button></div>
+          <div id="stBox">
+            <div class="row"><span class="grow">白邊粗細</span><span id="tVal">中</span></div>
+            <input type="range" id="thick" min="0" max="6" step="0.5" value="3" aria-label="白邊粗細">
+            <div class="row"><span class="grow">外框顏色</span><span id="eName">白色</span></div>
+            <div class="cols" id="edgeCol"></div>
+            <div class="chks">
+            <label class="chk"><input type="checkbox" id="shadow" checked>加陰影</label>
+            <label class="chk"><input type="checkbox" id="depth" checked>立體感</label>
+            </div>
           </div>
           <div id="txBox" hidden>
-            <input class="fld" id="txIn" maxlength="16" placeholder="輸入文字，例如：墾丁我來了" aria-label="貼紙文字">
-            <div class="row"><span>顏色</span><div class="cols" id="txCol"></div></div>
-            <div class="row"><span class="grow">文字大小</span></div>
+            <div class="row"><input class="fld" id="txIn" maxlength="16" placeholder="輸入文字，例如：墾丁我來了" aria-label="貼紙文字" style="flex:1;min-width:0"><button class="sk" id="txDel">拿掉</button></div>
+            <div class="row" style="margin-top:6px"><span class="grow">文字大小</span><span id="txSzV">中</span></div>
             <input type="range" id="txSz" min="8" max="30" step="1" value="16" aria-label="文字大小">
-            <div class="hint">在貼紙上拖曳文字可以移動位置</div>
+            <div class="row"><span class="grow">文字顏色</span><span id="txColN">桃紅</span></div>
+            <div class="cols" id="txCol"></div>
+            <div class="row"><span class="grow">文字外框</span><span id="txOutN">白色</span></div>
+            <div class="cols" id="txOut"></div>
+            <div class="row"><span class="grow">外框粗細</span><span id="txOwV">中</span></div>
+            <input type="range" id="txOw" min="0" max="50" step="2" value="32" aria-label="文字外框粗細">
+            <div class="hint">點貼紙上的文字會切到這裡；拖曳文字可以移動位置</div>
           </div>
         </div>
         <div class="acts">
@@ -338,7 +351,7 @@ function show(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+id));
   const tab={shoot:'shoot',proc:'shoot',edit:'shoot',books:'books',book:'books',mine:'mine'}[id];
   document.querySelectorAll('nav.bt button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
-  if(id!=='shoot')stopCam();else autoCam();
+  if(id!=='shoot')camPause();else autoCam();
   if(id==='books')renderBooks();
   if(id==='mine')renderMine();
 }
@@ -618,19 +631,49 @@ async function startCam(){
     stopCam();$('#vf0').innerHTML=VF0_WAIT;
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1440}},audio:false});
     if(!$('#v-shoot').classList.contains('on')){stopCam();return}
-    const v=$('#vid');v.srcObject=stream;v.hidden=false;v.classList.toggle('mir',facing==='user');await Promise.race([v.play(),new Promise(r=>setTimeout(r,4000))]);
+    const v=$('#vid');v.srcObject=stream;v.hidden=false;zoomInit();await Promise.race([v.play(),new Promise(r=>setTimeout(r,4000))]);
     $('#vf0').hidden=true;$('#bShut').disabled=false;$('#bCam').textContent='換鏡頭';LS.set('stk-cam','1');
   }catch(e){console.warn(e);LS.del('stk-cam');$('#vf0').hidden=false;$('#vf0').innerHTML='<div class="big">🙈</div><div>無法開啟鏡頭<br>請改用「選照片」</div>';$('#bShut').disabled=true}
   finally{camBusy=false}
 }
-async function autoCam(){if(stream||camBusy||!$('#v-shoot').classList.contains('on'))return;if(await camAllowed())startCam();else{LS.del('stk-cam');if(!stream)$('#vf0').innerHTML=VF0_ASK}}
-function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}const v=$('#vid');v.hidden=true;$('#vf0').hidden=false;$('#vf0').innerHTML=LS.get('stk-cam')==='1'?VF0_WAIT:VF0_ASK;$('#bShut').disabled=true;$('#bCam').textContent='開鏡頭'}
+async function autoCam(){if(!$('#v-shoot').classList.contains('on'))return;if(stream){camResume();return}if(camBusy)return;if(await camAllowed())startCam();else{LS.del('stk-cam');if(!stream)$('#vf0').innerHTML=VF0_ASK}}
+/* 離開拍照頁只「暫停」鏡頭不關掉，回來就不用再問一次授權；離開太久或切到背景才真的關 */
+let camIdle=0;
+function camPause(){if(!stream)return;stream.getVideoTracks().forEach(t=>t.enabled=false);$('#vid').pause();
+  clearTimeout(camIdle);camIdle=setTimeout(stopCam,3*60*1000)}
+function camResume(){clearTimeout(camIdle);if(!stream)return;stream.getVideoTracks().forEach(t=>t.enabled=true);const v=$('#vid');v.hidden=false;v.play().catch(()=>{});
+  $('#vf0').hidden=true;$('#bShut').disabled=false;$('#bCam').textContent='換鏡頭'}
+function stopCam(){clearTimeout(camIdle);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}const v=$('#vid');v.hidden=true;$('#vf0').hidden=false;$('#vf0').innerHTML=LS.get('stk-cam')==='1'?VF0_WAIT:VF0_ASK;$('#bShut').disabled=true;$('#bCam').textContent='開鏡頭'}
 $('#bCam').onclick=()=>{if(stream)facing=facing==='user'?'environment':'user';startCam()};
 $('#bShut').onclick=()=>{
-  const v=$('#vid');const c=fit(v.videoWidth,v.videoHeight);const x=c.getContext('2d');
+  const v=$('#vid'),vw=v.videoWidth,vh=v.videoHeight,dz=ZM.hw?1:ZM.z;
+  // 數位拉近：只取畫面中間 1/倍數 的範圍
+  const sw=vw/dz,sh=vh/dz,c=fit(sw,sh),x=c.getContext('2d');
   if(facing==='user'){x.translate(c.width,0);x.scale(-1,1)}
-  x.drawImage(v,0,0,c.width,c.height);stopCam();process(c);
+  x.drawImage(v,(vw-sw)/2,(vh-sh)/2,sw,sh,0,0,c.width,c.height);camPause();process(c);
 };
+/* ---------- 雙指拉近：手機支援就用鏡頭本身的變焦，不支援就用數位放大 ---------- */
+const ZM={z:1,hw:null,min:1,max:4,busy:false,want:0};
+function zoomInit(){ZM.z=1;ZM.hw=null;ZM.min=1;ZM.max=4;
+  try{const t=stream&&stream.getVideoTracks()[0],cp=t&&t.getCapabilities&&t.getCapabilities();
+    if(cp&&cp.zoom&&cp.zoom.max>cp.zoom.min){ZM.hw=t;ZM.min=cp.zoom.min;ZM.max=Math.min(cp.zoom.max,10);ZM.z=Math.max(ZM.min,Math.min(ZM.max,(t.getSettings().zoom)||ZM.min))}}catch(e){}
+  zoomView(false)}
+function zoomView(lbl=true){
+  const v=$('#vid'),m=facing==='user'?-1:1,s=ZM.hw?1:ZM.z;v.style.transform=`scale(${m*s},${s})`;
+  if(lbl){const L=$('#zLbl');L.textContent=(Math.round(ZM.z*10)/10)+'×';L.hidden=false;clearTimeout(L.t);L.t=setTimeout(()=>L.hidden=true,900)}}
+function zoomSet(z){
+  ZM.z=Math.max(ZM.min,Math.min(ZM.max,z));zoomView();
+  if(!ZM.hw)return;ZM.want=ZM.z;if(ZM.busy)return;ZM.busy=true;
+  const go=()=>{const w=ZM.want;ZM.hw.applyConstraints({advanced:[{zoom:w}]}).catch(()=>{}).finally(()=>{if(ZM.want!==w)go();else ZM.busy=false})};go()}
+(()=>{const vf=$('#vf'),pts=new Map();let g=null;
+  const dist=()=>{const [a,b]=[...pts.values()];return Math.hypot(a.x-b.x,a.y-b.y)};
+  vf.addEventListener('pointerdown',e=>{if(!stream)return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});try{vf.setPointerCapture(e.pointerId)}catch(x){}
+    if(pts.size===2)g={d:dist(),z:ZM.z}});
+  vf.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(g&&pts.size===2)zoomSet(g.z*dist()/Math.max(1,g.d))});
+  const up=e=>{pts.delete(e.pointerId);if(pts.size<2)g=null};
+  vf.addEventListener('pointerup',up);vf.addEventListener('pointercancel',up);
+})();
 $('#bAlbum').onclick=()=>$('#file').click();
 $('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const bm=await createImageBitmap(f,{imageOrientation:'from-image'});const c=fit(bm.width,bm.height);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);process(c)}
@@ -668,47 +711,73 @@ async function process(c){
 const TNAME=v=>v==0?'無':v<=1.5?'細':v<=3.5?'中':v<=5?'粗':'特粗';
 /* ---------- 文字（可選） ---------- */
 // 位置以貼紙本體的寬高比例記錄（0～1，可超出一點），大小以貼紙寬度的百分比記錄
-const TXCOL=['#F0567A','#2EA9DF','#3A2E39','#FFD84D','#6CC08B','#FFFFFF'];
-const TX={on:false,text:'',col:TXCOL[0],sz:16,x:.5,y:.86};
+// 文字顏色：7 種純色＋跟外框一樣的 7 種花樣
+const TFILL=[{k:'w',n:'白色',c:'#FFFFFF'},{k:'rd',n:'桃紅',c:'#F0567A'},{k:'bu',n:'湛藍',c:'#2EA9DF'},{k:'yl',n:'鵝黃',c:'#FFD84D'},
+  {k:'gr',n:'草綠',c:'#6CC08B'},{k:'vi',n:'葡萄紫',c:'#9B7BE0'},{k:'dk',n:'深墨',c:'#3A2E39'},...EDGES.filter(e=>!e.c)];
+const TX={on:false,text:'',fk:'rd',ok:'w',ow:32,sz:16,x:.5,y:.86};
 let baseCanvas=null,txGeo=null;
-$('#txCol').innerHTML=TXCOL.map((c,i)=>`<button style="background:${c}" data-c="${c}" class="${i?'':'on'}" aria-label="文字顏色"></button>`).join('');
+const swHTML=(L,lbl)=>L.map(e=>`<button data-k="${e.k}" style="background:${e.c||e.css}${e.tc?';color:'+e.tc:''}" aria-label="${lbl} ${e.n}" title="${e.n}">${e.txt||''}</button>`).join('');
+function txPaint(x,w,h,r,k){const f=TFILL.find(v=>v.k===k);return f&&f.c?f.c:edgePaint(x,w,h,r,k)}
 // 把文字疊到貼紙上；文字超出貼紙範圍時自動加大畫布
 function compose(){
-  const b=baseCanvas,t=TX.text.trim(),hasT=TX.on&&!!t;
-  txGeo=null;
-  if(!hasT)return b;
-  const fs=Math.max(12,Math.round(b.width*TX.sz/100)),ow=Math.round(fs*.32);
+  const b=baseCanvas,t=TX.text.trim();
+  TX.on=!!t;txGeo=null;
+  if(!t)return b;
+  const fs=Math.max(12,Math.round(b.width*TX.sz/100)),ow=TX.ow>0?Math.round(fs*TX.ow/100):0,pad=ow+Math.max(3,Math.round(fs*.08));
   const font=`${fs}px Huninn,"Noto Sans TC",sans-serif`;
   const mx=document.createElement('canvas').getContext('2d');mx.font=font;
   const tw=mx.measureText(t).width,cx=TX.x*b.width,cy=TX.y*b.height;
-  const T={cx,cy,x0:cx-tw/2-ow,x1:cx+tw/2+ow,y0:cy-fs*.65-ow,y1:cy+fs*.65+ow};
+  const T={cx,cy,x0:cx-tw/2-pad,x1:cx+tw/2+pad,y0:cy-fs*.65-pad,y1:cy+fs*.65+pad};
   const px=Math.ceil(Math.max(0,-T.x0)),py=Math.ceil(Math.max(0,-T.y0));
   const W=Math.ceil(Math.max(b.width,T.x1)+px),H=Math.ceil(Math.max(b.height,T.y1)+py);
+  // 文字先畫在自己的一層，再整層加陰影疊上去
+  const lw=Math.ceil(T.x1-T.x0),lh=Math.ceil(T.y1-T.y0),LC=document.createElement('canvas');LC.width=lw;LC.height=lh;
+  const l=LC.getContext('2d'),lx=cx-T.x0,ly=cy-T.y0,r=fs*.12;
+  l.font=font;l.textAlign='center';l.textBaseline='middle';l.lineJoin='round';l.miterLimit=2;
+  if(ow>0){l.strokeStyle=txPaint(l,lw,lh,r,TX.ok);l.lineWidth=ow*2;l.strokeText(t,lx,ly)}
+  // 字和外框同色、或沒外框的白字：加深色細框，免得糊在一起
+  if((TX.fk===TX.ok&&ow>0)||(!ow&&TX.fk==='w')){l.strokeStyle='#3A2E39';l.lineWidth=Math.max(2,fs*.08);l.strokeText(t,lx,ly)}
+  l.fillStyle=txPaint(l,lw,lh,r,TX.fk);l.fillText(t,lx,ly);
   const o=document.createElement('canvas');o.width=W;o.height=H;const x=o.getContext('2d');
   x.drawImage(b,px,py);
-  x.font=font;x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';x.miterLimit=2;
-  const X=T.cx+px,Y=T.cy+py;
-  // 白色粗外框（像貼紙白邊），外框帶一點陰影
-  x.save();x.shadowColor='rgba(58,46,57,.3)';x.shadowBlur=ow*.6;x.shadowOffsetY=ow*.3;
-  x.strokeStyle='#fff';x.lineWidth=ow*2;x.strokeText(t,X,Y);x.restore();
-  // 白字時加深色細框，避免和白邊融在一起
-  if(TX.col==='#FFFFFF'){x.strokeStyle='#3A2E39';x.lineWidth=Math.max(2,fs*.08);x.strokeText(t,X,Y)}
-  x.fillStyle=TX.col;x.fillText(t,X,Y);
+  const sb=Math.max(ow,fs*.1);
+  x.save();x.shadowColor='rgba(58,46,57,.3)';x.shadowBlur=sb*.6;x.shadowOffsetY=sb*.3;x.drawImage(LC,T.x0+px,T.y0+py);x.restore();
   txGeo={px,py,bw:b.width,bh:b.height,x0:T.x0+px,x1:T.x1+px,y0:T.y0+py,y1:T.y1+py};
   return o;
 }
 // 外框選擇區
-$('#edgeCol').innerHTML=EDGES.map(e=>`<button data-k="${e.k}" style="background:${e.c||e.css}${e.tc?';color:'+e.tc:''}" aria-label="外框 ${e.n}" title="${e.n}">${e.txt||''}</button>`).join('');
+$('#edgeCol').innerHTML=swHTML(EDGES,'外框');$('#txCol').innerHTML=swHTML(TFILL,'文字顏色');$('#txOut').innerHTML=swHTML(EDGES,'文字外框');
 function setEdge(k){EDGE=EDGES.some(e=>e.k===k)?k:'w';$('#eName').textContent=EDGES.find(e=>e.k===EDGE).n;
   $('#edgeCol').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===EDGE))}
 $('#edgeCol').querySelectorAll('button').forEach(b=>b.onclick=()=>{setEdge(b.dataset.k);drawEdit()});
-// 新貼紙：文字、外框都回到預設（外框白色）
-function resetText(){Object.assign(TX,{on:false,text:"",col:TXCOL[0],sz:16,x:.5,y:.86});$("#txOn").checked=false;$("#txBox").hidden=true;$("#txIn").value="";$("#txSz").value=16;$("#txCol").querySelectorAll("button").forEach((b,i)=>b.classList.toggle("on",!i));
-  setEdge('w')}
+// 文字設定 → 畫面
+const TSZ=v=>v<=12?'小':v<=19?'中':v<=25?'大':'特大';
+const OWN=v=>v==0?'無':v<=16?'細':v<=36?'中':'粗';
+function selSw(box,k,lbl,L){$(box).querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));$(lbl).textContent=(L.find(e=>e.k===k)||{}).n||''}
+function txSync(){$('#txIn').value=TX.text;$('#txSz').value=TX.sz;$('#txSzV').textContent=TSZ(TX.sz);$('#txOw').value=TX.ow;$('#txOwV').textContent=OWN(TX.ow);
+  selSw('#txCol',TX.fk,'#txColN',TFILL);selSw('#txOut',TX.ok,'#txOutN',EDGES)}
+// 讀入文字設定（相容舊版存檔：舊的是 col 色碼、on 開關）
+function txLoad(o){const m={'#F0567A':'rd','#2EA9DF':'bu','#3A2E39':'dk','#FFD84D':'yl','#6CC08B':'gr','#FFFFFF':'w'};
+  Object.assign(TX,{text:'',fk:'rd',ok:'w',ow:32,sz:16,x:.5,y:.86},o||{});
+  if(o&&o.col&&!o.fk)TX.fk=m[o.col]||'rd';delete TX.col;if(o&&o.on===false)TX.text='';TX.on=!!TX.text.trim();txSync()}
+// 新貼紙：文字、外框都回到預設（外框白色），編輯區回到「貼紙」
+function resetText(){txLoad(null);setEdge('w');setPane('st')}
+/* 編輯區分頁 */
+let PANE='st';
+function setPane(p){PANE=p;$('#edTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  $('#stBox').hidden=p!=='st';$('#txBox').hidden=p!=='tx';txSelPos()}
+$('#edTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{setPane(b.dataset.p);if(b.dataset.p==='tx'&&!TX.text.trim())$('#txIn').focus()});
+// 在「文字」分頁時，用虛線框標出正在改的文字
+function txSelPos(){const s=$('#txSel'),cv=$('#cv');
+  if(PANE!=='tx'||!txGeo||ER.on||!cv.width){s.hidden=true;return}
+  const st=s.parentElement,r=cv.getBoundingClientRect(),R=st.getBoundingClientRect(),k=r.width/cv.width;if(!k){s.hidden=true;return}
+  const L=r.left-R.left-st.clientLeft,T=r.top-R.top-st.clientTop;
+  Object.assign(s.style,{left:L+txGeo.x0*k-3+'px',top:T+txGeo.y0*k-3+'px',width:(txGeo.x1-txGeo.x0)*k+6+'px',height:(txGeo.y1-txGeo.y0)*k+6+'px'});s.hidden=false}
+addEventListener('resize',()=>txSelPos());
 function showComposite(){
   curCanvas=compose();
   const cv=$('#cv');cv.width=curCanvas.width;cv.height=curCanvas.height;cv.getContext('2d').drawImage(curCanvas,0,0);
-  cv.classList.toggle('txdrag',!!txGeo);
+  cv.classList.toggle('txdrag',!!txGeo);txSelPos();
 }
 function drawEdit(){
   if(ER.on){endErase();return}
@@ -719,16 +788,18 @@ function drawEdit(){
 let rq;$('#thick').oninput=()=>{cancelAnimationFrame(rq);rq=requestAnimationFrame(drawEdit)};
 $("#shadow").onchange=drawEdit;$("#depth").onchange=drawEdit;
 let rqT;const txRedraw=()=>{cancelAnimationFrame(rqT);rqT=requestAnimationFrame(showComposite)};
-$('#txOn').onchange=()=>{TX.on=$('#txOn').checked;$('#txBox').hidden=!TX.on;if(TX.on)$('#txIn').focus();txRedraw()};
 $('#txIn').oninput=()=>{TX.text=$('#txIn').value;txRedraw()};
-$('#txSz').oninput=()=>{TX.sz=+$('#txSz').value;txRedraw()};
-$('#txCol').querySelectorAll('button').forEach(b=>b.onclick=()=>{TX.col=b.dataset.c;$('#txCol').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));txRedraw()});
+$('#txDel').onclick=()=>{TX.text='';$('#txIn').value='';txRedraw();$('#txIn').focus()};
+$('#txSz').oninput=()=>{TX.sz=+$('#txSz').value;$('#txSzV').textContent=TSZ(TX.sz);txRedraw()};
+$('#txOw').oninput=()=>{TX.ow=+$('#txOw').value;$('#txOwV').textContent=OWN(TX.ow);txRedraw()};
+$('#txCol').querySelectorAll('button').forEach(b=>b.onclick=()=>{TX.fk=b.dataset.k;selSw('#txCol',TX.fk,'#txColN',TFILL);txRedraw()});
+$('#txOut').querySelectorAll('button').forEach(b=>b.onclick=()=>{TX.ok=b.dataset.k;selSw('#txOut',TX.ok,'#txOutN',EDGES);if(!TX.ow){TX.ow=32;txSync()}txRedraw()});
 // 在預覽上拖曳文字
 (()=>{const cv=$('#cv');let drag=null;
   const pt=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height}};
   cv.addEventListener('pointerdown',e=>{const p=pt(e),m=12*cv.width/cv.getBoundingClientRect().width;
     if(ER.on)return;const hit=g=>g&&!(p.x<g.x0-m||p.x>g.x1+m||p.y<g.y0-m||p.y>g.y1+m);
-    if(!hit(txGeo))return;const o=TX;
+    if(!hit(txGeo)){setPane('st');return}setPane('tx');const o=TX;
     drag={sx:p.x,sy:p.y,ox:o.x,oy:o.y,g:txGeo,o};cv.setPointerCapture(e.pointerId);e.preventDefault()});
   cv.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e),g=drag.g,o=drag.o;
     // 拖曳時用開始那一刻的畫布比例換算，避免畫布變大時亂跳
@@ -749,7 +820,7 @@ function erShow(){const cv=$('#cv');cv.width=P.cw;cv.height=P.ch;const x=cv.getC
 function erUI(){
   const b=$('#bErase');b.classList.toggle('on',ER.on);b.innerHTML=ER.on?IC_OK:IC_ER;b.setAttribute('aria-label',ER.on?'擦好了':'橡皮擦');if(!ER.on)erRing(null);
   $('#erBox').hidden=!ER.on;$('#mainCtl').hidden=ER.on;$('#bUndo').hidden=!ER.on;$('#bUndo').disabled=!ER.undo.length;
-  $('#cv').classList.toggle('erasing',ER.on)}
+  $('#cv').classList.toggle('erasing',ER.on);txSelPos()}
 function resetErase(){ER.on=false;ER.undo=[];ER.dirty=false;erUI()}
 function startErase(){if(!P)return;ER.on=true;ER.dirty=false;erUI();erShow()}
 // 依擦過的主體重算距離（白邊用）
@@ -818,8 +889,7 @@ async function editSticker(st,from){
   const c=st.cfg||{};
   $('#thick').value=c.thick??3;$('#shadow').checked=c.shadow??true;$('#depth').checked=c.depth??false;
   resetText();
-  if(c.tx){Object.assign(TX,c.tx);$('#txOn').checked=TX.on;$('#txBox').hidden=!TX.on;$('#txIn').value=TX.text;$('#txSz').value=TX.sz;
-    $('#txCol').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.c===TX.col))}
+  if(c.tx)txLoad(c.tx);
   setEdge(c.edge||'w');
   setEditMode(st.id,st.at);drawEdit();show('edit');
 }
