@@ -784,8 +784,14 @@ function showComposite(){
 }
 // 拖文字時畫布會變大，鎖住比例與位置，貼紙才不會跟著縮放、移動；放開後再重新置中
 let VLOCK=null;
+// 蘋果手機的瀏覽器不認得「最高 100%」，直式照片會超出方框被切掉；改成直接算好顯示大小
+function fitCv(cv){const st=cv.parentElement,aw=st.clientWidth-28,ah=st.clientHeight-28,s=cv.style;
+  if(aw<=0||ah<=0||!cv.width||!cv.height){s.width=s.height='';return}
+  const k=Math.min(aw/cv.width,ah/cv.height);s.width=cv.width*k+'px';s.height=cv.height*k+'px'}
+{const refit=()=>{const cv=$('#cv');if(cv&&!VLOCK)fitCv(cv)};addEventListener('resize',refit);
+  if(window.ResizeObserver)new ResizeObserver(refit).observe($('#cv').parentElement)}
 function lockView(cv){const s=cv.style;
-  if(!VLOCK){s.width=s.height=s.maxWidth=s.maxHeight=s.transform='';return}
+  if(!VLOCK){s.maxWidth=s.maxHeight=s.transform='';fitCv(cv);return}
   const k=VLOCK.k,px=txGeo?txGeo.px:0,py=txGeo?txGeo.py:0;
   Object.assign(s,{maxWidth:'none',maxHeight:'none',width:cv.width*k+'px',height:cv.height*k+'px',transform:''});
   const r=cv.getBoundingClientRect();s.transform=`translate(${VLOCK.bx-px*k-r.left}px,${VLOCK.by-py*k-r.top}px)`;
