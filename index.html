@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>相機貼紙原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Huninn&family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6EFE3;--panel:#FFFDF8;--ink:#3A2E39;--sub:#6F6370;--line:#3A2E39;--dot:#E3D6C2;--shadow:#3A2E39;
+  --pink:#F0567A;--yel:#FFD84D;--blueL:#CDEFFC;
+  --fr:'Huninn','Noto Sans TC',sans-serif;--fh:'LXGW WenKai TC','Noto Sans TC',serif;--fb:'Noto Sans TC',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1F1A21;--panel:#2B2430;--ink:#F5ECE6;--sub:#C4B6C0;--line:#F5ECE6;--dot:#352C3A;--shadow:#000;--blueL:#1F4152}}
+:root[data-theme="dark"]{--bg:#1F1A21;--panel:#2B2430;--ink:#F5ECE6;--sub:#C4B6C0;--line:#F5ECE6;--dot:#352C3A;--shadow:#000;--blueL:#1F4152}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);background-image:radial-gradient(var(--dot) 1.3px,transparent 1.5px);background-size:18px 18px;color:var(--ink);font-family:var(--fb);line-height:1.6}
+button{font:inherit;color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:22px 16px 60px;display:flex;gap:30px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.side{flex:1 1 300px;max-width:420px;display:flex;flex-direction:column;gap:16px}
+.side h1{font-family:var(--fr);font-size:30px;margin:0;line-height:1.3}
+.side h1 span{background:var(--pink);color:#fff;padding:0 10px;border-radius:12px;border:2.5px solid var(--line);box-shadow:2px 3px 0 var(--shadow);display:inline-block;transform:rotate(-2deg)}
+.card{background:var(--panel);border:2.5px solid var(--line);box-shadow:3px 4px 0 var(--shadow);border-radius:18px;padding:12px 16px}
+.card h3{font-family:var(--fr);margin:0 0 6px;font-size:17px}
+.card ul{margin:0;padding-left:20px}.card li{font-size:14px;margin:2px 0}
+.note{font-size:13px;color:var(--sub)}
+#stat{font-size:13px;white-space:pre-line}
+
+/* ===== 手機框（固定配色）===== */
+.ph{--c:#FFF8EC;--k:#3A2E39;--p:#F0567A;--pl:#FFD0DC;--b:#2EA9DF;--bl:#CDEFFC;--y:#FFD84D;--yl:#FFF1B8;--g:#6CC08B;--s:#7A6B78;
+  width:360px;height:760px;border-radius:46px;background:#2A2330;padding:10px;position:relative;color:var(--k);flex:none;
+  box-shadow:0 0 0 3px #4A4150,0 26px 50px -12px rgba(40,20,40,.5)}
+@media (max-width:400px){.ph{width:100%;height:calc(100vh - 20px);min-height:620px;border-radius:30px;padding:6px}.ph .scr{inset:6px;border-radius:24px}}
+.scr{position:absolute;inset:10px;border-radius:36px;overflow:hidden;background:#D9BF97;background-image:radial-gradient(rgba(120,84,46,.16) 1px,transparent 1.3px),radial-gradient(rgba(255,255,255,.18) 1px,transparent 1.3px);background-size:9px 9px,13px 13px;background-position:0 0,4px 6px; /* 牛皮紙桌墊，跟貼紙本內頁的米白點點區隔 */display:flex;flex-direction:column}
+.view{flex:1;overflow-y:auto;overflow-x:hidden;padding:30px 14px 12px;display:none;scrollbar-width:none;position:relative}
+.view::-webkit-scrollbar{display:none}
+.view.on{display:block}
+/* 所有畫面背景都是牛皮紙桌墊 */
+.scr{--s:#5E4A3A} /* 次要文字在牛皮紙上改深咖啡 */
+.ttl{font-family:var(--fr);font-size:22px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.ttl small{font-family:var(--fb);font-size:12px;color:var(--s);font-weight:500}
+.sk{border:2.5px solid var(--k);box-shadow:2px 3px 0 var(--k);border-radius:14px;background:#fff;color:var(--k);cursor:pointer;font-weight:700;padding:7px 12px;font-size:14px}
+.sk:active{transform:translate(2px,3px);box-shadow:0 0 0 var(--k)}
+.sk:disabled{opacity:.45;cursor:default}
+.pri{background:var(--p)!important;color:#fff!important}
+.blu{background:var(--b)!important;color:#fff!important}
+.yel{background:var(--y)!important}
+.row{display:flex;gap:8px;align-items:center}
+.grow{flex:1}
+nav.bt{display:flex;border-top:2.5px solid var(--k);background:#fff;padding:6px 8px 12px}
+nav.bt button{flex:1;border:0;background:none;cursor:pointer;font-weight:700;font-size:13px;padding:4px 0;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--s)}
+nav.bt button b{font-size:20px;line-height:1.2}
+nav.bt button.on{color:var(--k);background:var(--yl)}
+
+/* 拍照 */
+.vf{position:relative;aspect-ratio:3/4;border:2.5px solid var(--k);border-radius:20px;overflow:hidden;background:#2A2330;box-shadow:3px 4px 0 var(--k)}
+.vf video{width:100%;height:100%;object-fit:cover;display:block}
+.vf video.mir{transform:scaleX(-1)}
+.vf .ph0{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#FFF1B8;text-align:center;padding:20px;font-size:14px}
+.vf .ph0 .big{font-size:46px}
+.vf .corner{position:absolute;width:26px;height:26px;border:3px solid #fff;opacity:.85}
+.shoot{display:flex;justify-content:space-around;align-items:center;margin-top:16px}
+.shut{width:74px;height:74px;border-radius:50%;background:var(--p);border:4px solid var(--k);box-shadow:0 0 0 5px #fff,0 0 0 7.5px var(--k);cursor:pointer}
+.shut:active{transform:scale(.94)}
+.shut:disabled{opacity:.4}
+.hint{font-size:12.5px;color:var(--s);text-align:center;margin-top:12px}
+
+/* 處理中 */
+.procimg{position:relative;border:2.5px solid var(--k);border-radius:20px;overflow:hidden;box-shadow:3px 4px 0 var(--k);background:#fff}
+.procimg img{display:block;width:100%}
+.scan{position:absolute;left:0;right:0;height:40%;background:linear-gradient(transparent,rgba(255,216,77,.55),transparent);animation:scan 1.6s linear infinite}
+@keyframes scan{from{top:-40%}to{top:100%}}
+.bar{height:14px;border:2.5px solid var(--k);border-radius:99px;background:#fff;overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%;width:0;background:var(--y);transition:width .2s}
+.ptxt{font-size:13px;text-align:center;margin-top:6px;white-space:pre-line}
+
+/* 編輯 */
+.stage{aspect-ratio:1;border:2.5px solid var(--k);border-radius:20px;box-shadow:3px 4px 0 var(--k);display:flex;align-items:center;justify-content:center;padding:14px;
+  background-color:#fff;background-image:linear-gradient(45deg,#EFE6D6 25%,transparent 25%,transparent 75%,#EFE6D6 75%),linear-gradient(45deg,#EFE6D6 25%,transparent 25%,transparent 75%,#EFE6D6 75%);background-size:20px 20px;background-position:0 0,10px 10px}
+.stage canvas{max-width:100%;max-height:100%;display:block;touch-action:none}
+.stage canvas.txdrag{cursor:grab}
+#txBox{border-top:2px dashed #E3D6C2;margin-top:6px;padding-top:8px}
+#txBox .cols{margin:6px 0}
+#txBox .cols button{width:28px;height:28px}
+.hint{font-size:12px;color:var(--s);font-weight:500}
+.ctl{margin-top:12px;background:#fff;border:2.5px solid var(--k);border-radius:16px;padding:8px 12px;font-size:14px;font-weight:700}
+.ctl input[type=range]{width:100%;accent-color:var(--p)}
+.chks{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:6px}
+.chk{display:flex;align-items:center;gap:6px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--p)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.acts .full{grid-column:1/-1}
+
+/* 貼紙本清單 */
+.books{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bk{aspect-ratio:3/4;border:2.5px solid var(--k);border-radius:8px 16px 16px 8px;box-shadow:3px 4px 0 var(--k);cursor:pointer;position:relative;padding:12px 10px 10px 18px;display:flex;flex-direction:column;justify-content:space-between;text-align:left}
+.bk::before{content:"";position:absolute;left:6px;top:0;bottom:0;width:3px;background:rgba(58,46,57,.25)}
+.bk .nm{font-family:var(--fh);font-weight:700;font-size:17px;line-height:1.3;background:#fff;border:2px solid var(--k);border-radius:8px;padding:4px 6px;word-break:break-all}
+.bk .meta{font-size:11.5px;font-weight:700}
+.bk .thumbs{display:flex;flex-wrap:wrap;gap:2px}
+.bk .thumbs img{width:34px;height:34px;object-fit:contain}
+.books .dh{grid-column:1/-1;display:flex;align-items:baseline;gap:6px;font-weight:700;font-size:14px;margin-top:4px;padding-bottom:2px;border-bottom:2px dashed #ccc}
+.books .dh span{font-size:12px;color:var(--s)}
+.bk .x{position:absolute;right:-6px;top:-6px;border:2px solid var(--k);border-radius:99px;background:#fff;font-size:11px;font-weight:700;padding:0 6px;cursor:pointer;z-index:1}
+/* 平常不顯示刪除；按標題列「編輯」進入編輯模式才出現，點封面改名稱、顏色 */
+.books:not(.editing) .bk .x,.books:not(.editing) .bhint{display:none}
+.books.editing .bk{outline:2px dashed var(--k);outline-offset:3px}
+.bhint{grid-column:1/-1;font-size:12px;color:var(--s);margin:-2px 0 2px}
+.empty{text-align:center;color:var(--s);font-size:13.5px;padding:24px 8px}
+
+/* 貼紙本內頁 */
+.pwrap{position:relative;perspective:1800px}
+.page{position:relative;aspect-ratio:3/4;border:2.5px solid var(--k);border-radius:4px 8px 8px 4px;overflow:hidden;touch-action:none;
+  background:#FBF9F5;background-image:radial-gradient(circle,#E2DBD0 1.1px,transparent 1.6px);background-size:18px 18px;background-position:9px 9px;
+  box-shadow:3px 3px 0 -1px #F1ECE3,3px 3px 0 1px var(--k),6px 6px 0 -1px #E9E2D6,6px 6px 0 1px var(--k)}
+.page::before{content:'';position:absolute;left:0;top:0;bottom:0;width:30px;pointer-events:none;
+  background:radial-gradient(circle at 14px 50%,#3A2E39 0 4.5px,#C9BFB2 5px 6.5px,transparent 7px) 0 8px/30px 36px repeat-y,linear-gradient(90deg,#ECE5DA,#F6F2EB 70%,#E6DED1);
+  border-right:1.5px dashed #D3C9BB}
+/* 活頁環扣：金屬環從頁緣繞進每個孔 */
+.page::after{content:'';position:absolute;left:0;top:0;bottom:0;width:30px;pointer-events:none;z-index:2;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='36'%3E%3Cdefs%3E%3ClinearGradient id='g' gradientUnits='userSpaceOnUse' x1='0' y1='13.5' x2='0' y2='20.5'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.45' stop-color='%23C3C6CA'/%3E%3Cstop offset='1' stop-color='%23767B80'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M-2 21 Q6 19.5 14 20.5' stroke='rgba(58,46,57,.22)' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3Cpath d='M-2 17 Q6 14 14 17' stroke='%233A2E39' stroke-width='8' stroke-linecap='round' fill='none'/%3E%3Cpath d='M-2 17 Q6 14 14 17' stroke='url(%23g)' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3Cpath d='M1 15.6 Q6 14.2 10 15' stroke='%23fff' stroke-width='1.2' stroke-linecap='round' fill='none' opacity='.9'/%3E%3C/svg%3E") 0 8px/30px 36px repeat-y}
+.page .hd{position:absolute;left:40px;top:8px;font-family:var(--fh);font-weight:700;font-size:15px;pointer-events:none;color:#6F6370}
+.page .tape{position:absolute;width:62px;height:18px;background:rgba(255,216,77,.7);top:-4px;pointer-events:none}
+.page.leaf,.page.under{position:absolute;left:0;top:0;width:100%;pointer-events:none;box-shadow:none}
+.page.under{z-index:4}.page.leaf{z-index:5;transform-origin:left center;backface-visibility:hidden}
+.leaf .shade{position:absolute;inset:0;pointer-events:none;z-index:9999;background:linear-gradient(90deg,rgba(58,46,57,.05),rgba(58,46,57,.4))}
+.page .pno{position:absolute;right:10px;bottom:6px;font-size:11px;color:#9A8E98;pointer-events:none}
+.it{position:absolute;transform-origin:center;cursor:grab;touch-action:none;user-select:none}
+.it img{width:100%;display:block;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(58,46,57,.3))}
+.it.sel{outline:2px dashed var(--p);outline-offset:3px}
+.it .hdl{position:absolute;width:26px;height:26px;border-radius:50%;border:2.5px solid var(--k);display:none;align-items:center;justify-content:center;font-size:13px;font-weight:900;background:#fff;cursor:pointer}
+.it.sel .hdl{display:flex}
+.it .rs{right:-16px;bottom:-16px;background:var(--y);cursor:nwse-resize}
+.it .dl{left:-16px;top:-16px;background:var(--p);color:#fff}
+.it .fp{right:-16px;top:-16px;background:#fff;font-size:14px}
+.it .ed{left:-16px;bottom:-16px;background:#7CC4EC;font-size:14px}
+#edgeCol{flex-wrap:wrap;gap:7px}
+#edgeCol button{width:30px;height:30px;font-size:14px;line-height:1;color:#FFD84D;padding:0}
+.it img{transition:transform .2s}
+.pgbar{display:flex;align-items:center;gap:6px;margin:10px 0}
+.pgbar .sk{padding:4px 10px}
+.tray{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 10px;scrollbar-width:thin}
+.tray button{flex:none;width:66px;height:66px;border:2px solid var(--k);border-radius:12px;background:#fff;cursor:pointer;padding:4px}
+.tray img{width:100%;height:100%;object-fit:contain}
+.sub{font-size:12.5px;font-weight:700;color:var(--s);margin-top:4px}
+
+/* 我的貼紙 */
+.mine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mine .cell{position:relative;min-width:0;aspect-ratio:1;border:2px solid var(--k);border-radius:12px;background:#fff;padding:4px}
+.mine img{width:100%;height:100%;object-fit:contain}
+.mine .dh{grid-column:1/-1;display:flex;align-items:baseline;gap:6px;font-weight:700;font-size:14px;margin-top:6px;padding-bottom:2px;border-bottom:2px dashed #ccc}
+.mine .dh:first-child{margin-top:0}
+.mine .dh span{font-size:11px;font-weight:400;color:#888}
+.mine .x{position:absolute;right:-6px;top:-6px;border:2px solid var(--k);border-radius:99px;background:#fff;font-size:11px;font-weight:700;padding:0 6px;cursor:pointer}
+.mine .x.arm{background:var(--p);color:#fff}
+
+/* 底部抽屜 */
+.sheet{position:absolute;inset:0;background:rgba(42,35,48,.5);display:none;align-items:flex-end;z-index:50}
+.sheet.on{display:flex}
+.sheet .in{background:var(--c);width:100%;border-top:2.5px solid var(--k);border-radius:22px 22px 0 0;padding:16px 14px 18px;max-height:85%;overflow-y:auto}
+.sheet h4{font-family:var(--fr);font-size:18px;margin:0 0 10px}
+.mprev{display:flex;align-items:center;justify-content:center;height:160px;box-sizing:border-box;overflow:hidden;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/16px 16px;border:2px solid var(--k);border-radius:12px;padding:6px}.mprev img{max-width:100%;max-height:144px;width:auto;height:auto;object-fit:contain}.mine img{cursor:pointer}
+.pick{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.pick button{display:flex;align-items:center;gap:10px;text-align:left}
+.pick i{width:18px;height:24px;border:2px solid var(--k);border-radius:3px 6px 6px 3px;flex:none}
+.fld{width:100%;border:2.5px solid var(--k);border-radius:12px;padding:8px 10px;font:inherit;font-size:15px;background:#fff;color:var(--k)}
+.cols{display:flex;gap:8px;margin:10px 0}
+.cols button{width:34px;height:34px;border-radius:50%;border:2.5px solid var(--k);cursor:pointer}
+.cols button.on{box-shadow:0 0 0 3px #fff,0 0 0 5.5px var(--k)}
+.toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);background:var(--k);color:#fff;border-radius:99px;padding:6px 14px;font-size:13px;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;white-space:nowrap}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ph" id="ph">
+    <div class="scr">
+      <!-- 拍照 -->
+      <section class="view on" id="v-shoot">
+        <h2 class="ttl">拍貼紙 <small>人、寵物、物品都可以</small></h2>
+        <div class="vf" id="vf">
+          <video id="vid" playsinline muted hidden></video>
+          <div class="ph0" id="vf0"><div class="big">📷</div><div>按「開鏡頭」拍照<br>或從相簿選一張照片</div></div>
+        </div>
+        <div class="shoot">
+          <button class="sk" id="bAlbum">選照片</button>
+          <button class="shut" id="bShut" aria-label="拍照" disabled></button>
+          <button class="sk" id="bCam">開鏡頭</button>
+        </div>
+        <div class="hint">拍完會自動把主體摳出來，加上白邊變成貼紙</div>
+        <input type="file" id="file" accept="image/*" hidden>
+      </section>
+
+      <!-- 處理中 -->
+      <section class="view" id="v-proc">
+        <h2 class="ttl">摳圖中…</h2>
+        <div class="procimg"><img id="procImg" alt="處理中的照片"><div class="scan"></div></div>
+        <div class="bar"><i id="pbar"></i></div>
+        <div class="ptxt" id="ptxt">準備中</div>
+      </section>
+
+      <!-- 編輯 -->
+      <section class="view" id="v-edit">
+        <h2 class="ttl" id="edTtl">你的貼紙</h2>
+        <div class="stage"><canvas id="cv"></canvas></div>
+        <div class="ctl">
+          <div class="row"><span class="grow">白邊粗細</span><span id="tVal">中</span></div>
+          <input type="range" id="thick" min="0" max="6" step="0.5" value="3" aria-label="白邊粗細">
+          <div class="row"><span class="grow">外框顏色</span><span id="eName">白色</span></div>
+          <div class="cols" id="edgeCol"></div>
+          <div class="chks">
+          <label class="chk"><input type="checkbox" id="shadow" checked>加陰影</label>
+          <label class="chk"><input type="checkbox" id="depth" checked>立體感</label>
+          <label class="chk"><input type="checkbox" id="txOn">加文字</label>
+          </div>
+          <div id="txBox" hidden>
+            <input class="fld" id="txIn" maxlength="16" placeholder="輸入文字，例如：墾丁我來了" aria-label="貼紙文字">
+            <div class="row"><span>顏色</span><div class="cols" id="txCol"></div></div>
+            <div class="row"><span class="grow">文字大小</span></div>
+            <input type="range" id="txSz" min="8" max="30" step="1" value="16" aria-label="文字大小">
+            <div class="hint">在貼紙上拖曳文字可以移動位置</div>
+          </div>
+        </div>
+        <div class="acts">
+          <button class="sk" id="bCopy">複製圖片</button>
+          <button class="sk blu" id="bSave">存成圖片</button>
+          <button class="sk pri full" id="bToBook">貼進貼紙本</button>
+          <button class="sk full" id="bRe">重拍</button>
+        </div>
+      </section>
+
+      <!-- 貼紙本清單 -->
+      <section class="view" id="v-books">
+        <h2 class="ttl" style="display:flex;align-items:center;gap:6px">貼紙本 <small class="grow">出去玩就開一本</small><button class="sk" id="bEdit" style="font-family:var(--fb);font-size:13px;padding:4px 10px">編輯</button><button class="sk yel" id="bNew" style="font-family:var(--fb);font-size:13px;padding:4px 10px">＋ 新增</button></h2>
+        <div class="books" id="books"></div>
+      </section>
+
+      <!-- 貼紙本內頁 -->
+      <section class="view" id="v-book">
+        <div class="row" style="margin-bottom:8px">
+          <button class="sk" id="bBack" style="padding:3px 10px">‹ 返回</button>
+          <h2 class="ttl grow" id="bkName" style="margin:0;font-family:var(--fh);font-size:19px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></h2>
+        </div>
+        <div class="pwrap" id="pwrap"><div class="page" id="page"></div></div>
+        <div class="pgbar">
+          <button class="sk" id="pPrev">‹</button>
+          <span id="pInfo" class="grow" style="text-align:center;font-weight:700;font-size:14px"></span>
+          <button class="sk" id="pNext">›</button>
+          <button class="sk yel" id="pAdd">＋頁</button>
+          <button class="sk" id="pExp">存圖</button>
+        </div>
+        <div class="sub">點一下貼紙就貼到這頁　拖曳移動・黃點旋轉縮放</div>
+        <div class="tray" id="tray"></div>
+      </section>
+
+      <!-- 我的貼紙 -->
+      <section class="view" id="v-mine">
+        <h2 class="ttl">我的貼紙 <small id="mineN"></small></h2>
+        <div class="mine" id="mine"></div>
+      </section>
+
+      <nav class="bt">
+        <button data-t="shoot" class="on"><b>📷</b>拍貼紙</button>
+        <button data-t="books"><b>📒</b>貼紙本</button>
+        <button data-t="mine"><b>⭐</b>我的貼紙</button>
+      </nav>
+
+      <div class="sheet" id="sheet"><div class="in" id="sheetIn"></div></div>
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <h1>相機<span>貼紙</span>原型</h1>
+    <div class="card">
+      <h3>這一版可以做什麼</h3>
+      <ul>
+        <li>拍照或選照片 → 自動摳出主體（人、寵物、物品）</li>
+        <li>加白邊（粗細可調）、陰影，存成透明背景圖片</li>
+        <li>貼紙本：建立多本、多頁，貼紙可拖曳、旋轉、縮放，整頁存成圖片</li>
+        <li>可選擇加文字；「立體感」讓貼紙有紙張厚度與光影</li>
+        <li>複製圖片，可以貼到聊天室</li>
+        <li>「我的貼紙」點一張可以重新編輯（例如改錯字），貼紙本裡的會一起更新</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>請注意</h3>
+      <ul>
+        <li>第一次摳圖要下載約 94 MB 的摳圖模型，之後瀏覽器會記住。</li>
+        <li>網頁原型的摳圖模型跟正式版手機 App 不同，<b>邊緣品質不代表正式版</b>。</li>
+        <li>資料只存在這台電腦的瀏覽器裡。</li>
+        <li>LINE 貼紙組、懷舊貼紙紙、表情包連拍尚未做，等您同意後下一版再做。</li>
+      </ul>
+    </div>
+    <div class="card"><h3>運作狀態</h3><div id="stat" class="note">尚未載入摳圖模型</div></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const TJS='https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
+// 輸入 512 的 BiRefNet 輕量版（MIT 授權）。原 1024 版在一般運算下記憶體不足
+const MODEL_ID='studioludens/birefnet-lite-512';
+const COLORS=['#FFD0DC','#CDEFFC','#FFF1B8','#CFEBD6','#E6D9F2'];
+
+/* ---------- 小工具 ---------- */
+let toastT;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),1800)}
+function stat(m){$('#stat').textContent=m}
+function show(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+id));
+  const tab={shoot:'shoot',proc:'shoot',edit:'shoot',books:'books',book:'books',mine:'mine'}[id];
+  document.querySelectorAll('nav.bt button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+  if(id!=='shoot')stopCam();
+  if(id==='books')renderBooks();
+  if(id==='mine')renderMine();
+}
+document.querySelectorAll('nav.bt button').forEach(b=>b.onclick=()=>show(b.dataset.t));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const toBlob=(c,t='image/png')=>new Promise(r=>c.toBlob(r,t));
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+const stamp=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`};
+
+/* ---------- 資料庫（瀏覽器內） ---------- */
+let dbp;
+function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('sticker-proto',1);r.onupgradeneeded=()=>{r.result.createObjectStore('stickers',{keyPath:'id'});r.result.createObjectStore('books',{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))}
+async function tx(store,mode,fn){const d=await db();return new Promise((res,rej)=>{const t=d.transaction(store,mode);const s=t.objectStore(store);const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error)})}
+const all=s=>tx(s,'readonly',o=>o.getAll());
+const put=(s,v)=>tx(s,'readwrite',o=>o.put(v));
+const del=(s,k)=>tx(s,'readwrite',o=>o.delete(k));
+const urlCache=new Map();
+function sUrl(st){if(!urlCache.has(st.id))urlCache.set(st.id,URL.createObjectURL(st.blob));return urlCache.get(st.id)}
+
+/* ---------- 摳圖模型 ---------- */
+let T,model,processor,loading,devInfo="",skip=0,curIx=0;
+const MODES=[{device:'webgpu',dtype:'fp16',n:'顯示卡加速',gpu:1},{device:'wasm',dtype:'fp16',n:'一般運算（半精度）'},{device:'wasm',dtype:'fp32',n:'一般運算'}];
+try{skip=+localStorage.getItem('stk-skip')||0}catch(e){}
+// 某種運算方式在執行時失敗：換下一種重載
+function dropMode(){skip=curIx+1;try{localStorage.setItem('stk-skip',skip)}catch(e){}model=null;loading=null;return skip<MODES.length}
+function prog(p){
+  if(p.status==='progress'&&p.file&&p.file.endsWith('.onnx')){
+    const pct=p.total?p.loaded/p.total*100:p.progress||0;
+    $('#pbar').style.width=pct.toFixed(0)+'%';
+    $('#ptxt').textContent=`第一次使用，下載摳圖模型 ${(p.loaded/1048576).toFixed(0)} / ${(p.total/1048576).toFixed(0)} MB`;
+  }
+}
+async function loadModel(){
+  if(model)return;
+  if(!loading)loading=(async()=>{
+    $('#ptxt').textContent='載入摳圖程式…';
+    T=await import(TJS);
+    let gpu=false;
+    // 這個模型在顯示卡上需要 17 個儲存緩衝區；上限不夠的顯示卡直接改用一般運算
+    try{const ad=navigator.gpu&&await navigator.gpu.requestAdapter();gpu=!!ad&&ad.limits.maxStorageBuffersPerShaderStage>=17}catch(e){}
+    const tries=MODES.slice(skip).filter(o=>gpu||!o.gpu);
+    let err;
+    for(const o of tries){
+      try{model=await T.AutoModel.from_pretrained(MODEL_ID,{device:o.device,dtype:o.dtype,progress_callback:prog});devInfo=o.n;curIx=MODES.indexOf(o);break}
+      catch(e){err=e;console.warn('模型載入失敗，改用下一種方式',o,e)}
+    }
+    if(!model)throw err;
+    processor=await T.AutoProcessor.from_pretrained(MODEL_ID);
+  })().catch(e=>{loading=null;throw e});
+  return loading;
+}
+function half2float(h){const s=(h&0x8000)?-1:1,e=(h>>10)&31,f=h&1023;if(e===0)return s*Math.pow(2,-14)*(f/1024);if(e===31)return f?NaN:s*Infinity;return s*Math.pow(2,e-15)*(1+f/1024)}
+// 回傳與輸入同尺寸的透明度遮罩（0～255）
+async function segment(cv){
+  const img=await T.RawImage.fromBlob(await toBlob(cv));
+  const {pixel_values}=await processor(img);
+  const out=await model({input_image:pixel_values});
+  const t=out.output_image||Object.values(out)[0];
+  const dims=t.dims,mh=dims[dims.length-2],mw=dims[dims.length-1];
+  const raw=t.data,n=mw*mh;
+  const id=new ImageData(mw,mh);
+  const isU16=raw instanceof Uint16Array;
+  for(let i=0;i<n;i++){const v=isU16?half2float(raw[i]):Number(raw[i]);id.data[i*4+3]=255/(1+Math.exp(-v))}
+  const a=new OffscreenCanvas(mw,mh);a.getContext('2d').putImageData(id,0,0);
+  const b=new OffscreenCanvas(cv.width,cv.height);const bx=b.getContext('2d');bx.imageSmoothingQuality='high';bx.drawImage(a,0,0,cv.width,cv.height);
+  const d=bx.getImageData(0,0,cv.width,cv.height).data,m=new Uint8Array(cv.width*cv.height);
+  for(let i=0;i<m.length;i++)m[i]=d[i*4+3];
+  return m;
+}
+
+/* ---------- 白邊貼紙運算 ---------- */
+// 二維歐氏距離轉換（到最近主體像素的距離）
+function edt(bin,w,h){
+  const INF=1e20,f=new Float64Array(w*h);
+  for(let i=0;i<f.length;i++)f[i]=bin[i]?0:INF;
+  const n=Math.max(w,h),g=new Float64Array(n),d=new Float64Array(n),v=new Int32Array(n),z=new Float64Array(n+1);
+  function dt(len){
+    let k=0;v[0]=0;z[0]=-INF;z[1]=INF;
+    for(let q=1;q<len;q++){
+      let s=((g[q]+q*q)-(g[v[k]]+v[k]*v[k]))/(2*q-2*v[k]);
+      while(s<=z[k]){k--;s=((g[q]+q*q)-(g[v[k]]+v[k]*v[k]))/(2*q-2*v[k])}
+      k++;v[k]=q;z[k]=s;z[k+1]=INF;
+    }
+    k=0;
+    for(let q=0;q<len;q++){while(z[k+1]<q)k++;const dq=q-v[k];d[q]=dq*dq+g[v[k]]}
+  }
+  for(let x=0;x<w;x++){for(let y=0;y<h;y++)g[y]=f[y*w+x];dt(h);for(let y=0;y<h;y++)f[y*w+x]=d[y]}
+  for(let y=0;y<h;y++){for(let x=0;x<w;x++)g[x]=f[y*w+x];dt(w);for(let x=0;x<w;x++)f[y*w+x]=d[x]}
+  const out=new Float32Array(w*h);for(let i=0;i<out.length;i++)out[i]=Math.sqrt(f[i]);return out;
+}
+// 留下主要的主體區塊，去掉零星雜點；回傳裁切後的資料
+function prepare(src,alpha){
+  const w=src.width,h=src.height,N=w*h;
+  const lab=new Int32Array(N),areas=[0],stack=new Int32Array(N);
+  let L=0;
+  for(let i=0;i<N;i++){
+    if(alpha[i]<128||lab[i])continue;
+    L++;let sp=0,area=0;stack[sp++]=i;lab[i]=L;
+    while(sp){const p=stack[--sp];area++;const x=p%w;
+      const nb=[x>0?p-1:-1,x<w-1?p+1:-1,p-w,p+w];
+      for(const q of nb){if(q>=0&&q<N&&!lab[q]&&alpha[q]>=128){lab[q]=L;stack[sp++]=q}}}
+    areas.push(area);
+  }
+  if(!L)return null;
+  const big=Math.max(...areas.slice(1));
+  const keep=areas.map((a,i)=>i>0&&a>=Math.max(big*0.08,N*0.0005));
+  let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const l=lab[y*w+x];if(l&&keep[l]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}
+  if(x1<0)return null;
+  const bw=x1-x0+1,bh=y1-y0+1,size=Math.max(bw,bh);
+  if(big<N*0.003)return null;
+  const pad=Math.ceil(size*0.065)+6;
+  const cw=bw+pad*2,ch=bh+pad*2,ox=x0-pad,oy=y0-pad;
+  const K=new Uint8Array(cw*ch);
+  for(let y=0;y<ch;y++){const sy=y+oy;if(sy<0||sy>=h)continue;for(let x=0;x<cw;x++){const sx=x+ox;if(sx<0||sx>=w)continue;const l=lab[sy*w+sx];if(l&&keep[l])K[y*cw+x]=1}}
+  const dist=edt(K,cw,ch);
+  const cc=new OffscreenCanvas(cw,ch),cx=cc.getContext('2d');cx.drawImage(src,-ox,-oy);
+  const im=cx.getImageData(0,0,cw,ch),D=im.data;
+  for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){const i=y*cw+x,sx=x+ox,sy=y+oy;
+    const a=(sx>=0&&sx<w&&sy>=0&&sy<h&&dist[i]<=2)?alpha[sy*w+sx]:0;D[i*4+3]=Math.min(D[i*4+3],a)}
+  cx.putImageData(im,0,0);
+  return {cw,ch,size,dist,cut:cc};
+}
+// 依白邊粗細（百分比）與陰影產生最後的貼紙畫布
+/* ---------- 外框顏色與花樣（白色是預設；都避開貼紙本的米白底色） ---------- */
+const EDGES=[
+  {k:'w',n:'白色',c:'#FFFFFF'},
+  {k:'pk',n:'粉紅',c:'#F38BA8'},
+  {k:'bl',n:'天藍',c:'#6EBDEB'},
+  {k:'yl',n:'鵝黃',c:'#FFD84D'},
+  {k:'gn',n:'薄荷',c:'#74CFA0'},
+  {k:'pp',n:'淡紫',c:'#B596EA'},
+  {k:'dk',n:'深墨',c:'#3A2E39'},
+  {k:'rb',n:'彩虹',css:'conic-gradient(#F0567A,#FFB347,#FFD84D,#6CC08B,#2EA9DF,#9B7BE0,#F0567A)'},
+  // 花樣一律不用白色，避免和貼紙本米白底（#FBF9F5）混在一起；底色也彼此錯開
+  {k:'dt',n:'點點',css:'radial-gradient(#FFE066 26%,transparent 30%) 0 0/9px 9px,#2A9D8F'},
+  {k:'st',n:'條紋',css:'repeating-linear-gradient(45deg,#2EA9DF 0 4px,#FFD84D 4px 7px)'},
+  {k:'gc',n:'格紋',css:'repeating-linear-gradient(0deg,rgba(214,98,32,.5) 0 4px,transparent 4px 8px),repeating-linear-gradient(90deg,rgba(214,98,32,.5) 0 4px,#FFC37A 4px 8px)'},
+  {k:'sr',n:'星星',css:'#2B3A67',txt:'★'},
+  {k:'ht',n:'愛心',css:'#E8506A',txt:'♥',tc:'#FFC2D1'},
+  {k:'cf',n:'紙花',css:'radial-gradient(#FF8FB1 20%,transparent 24%) 0 0/10px 10px,radial-gradient(#FFD84D 20%,transparent 24%) 5px 5px/10px 10px,radial-gradient(#6EBDEB 18%,transparent 22%) 2px 7px/13px 13px,#5E3D2C'},
+];
+let EDGE='w';
+function starPath(x,cx,cy,R){x.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?R*.45:R;x.lineTo(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr)}x.closePath()}
+function edgePaint(x,cw,ch,r,k){
+  const e=EDGES.find(v=>v.k===k)||EDGES[0];if(e.c)return e.c;
+  const u=Math.max(6,Math.round(r*1.4));
+  const tile=(w,h,fn)=>{const t=new OffscreenCanvas(w,h),tx=t.getContext('2d');fn(tx);return x.createPattern(t,'repeat')};
+  if(k==='rb'){const cols=['#F0567A','#FFB347','#FFD84D','#6CC08B','#2EA9DF','#9B7BE0','#F0567A'];
+    const g=x.createConicGradient?x.createConicGradient(0,cw/2,ch/2):x.createLinearGradient(0,0,cw,ch);
+    cols.forEach((c,i)=>g.addColorStop(i/(cols.length-1),c));return g}
+  if(k==='dt')return tile(u,u,t=>{t.fillStyle='#2A9D8F';t.fillRect(0,0,u,u);t.fillStyle='#FFE066';t.beginPath();t.arc(u/2,u/2,u*.24,0,7);t.fill()});
+  if(k==='st'){const p=tile(u,u,t=>{t.fillStyle='#FFD84D';t.fillRect(0,0,u,u);t.fillStyle='#2EA9DF';t.fillRect(0,0,u*.55,u)});
+    p.setTransform(new DOMMatrix().rotate(45));return p}
+  if(k==='gc')return tile(u*2,u*2,t=>{t.fillStyle='#FFC37A';t.fillRect(0,0,u*2,u*2);t.fillStyle='rgba(214,98,32,.5)';t.fillRect(0,0,u,u*2);t.fillRect(0,0,u*2,u)});
+  if(k==='sr')return tile(u*2,u*2,t=>{t.fillStyle='#2B3A67';t.fillRect(0,0,u*2,u*2);t.fillStyle='#FFD84D';starPath(t,u,u,u*.55);t.fill();
+    t.beginPath();t.arc(u*.25,u*.3,Math.max(1,u*.08),0,7);t.fill()});
+  if(k==='ht')return tile(u*2,u*2,t=>{t.fillStyle='#E8506A';t.fillRect(0,0,u*2,u*2);t.fillStyle='#FFC2D1';
+    const s=u*.55,cx=u,cy=u*.92;t.beginPath();t.moveTo(cx,cy+s*.75);
+    t.bezierCurveTo(cx-s*1.1,cy,cx-s*.55,cy-s*.75,cx,cy-s*.25);t.bezierCurveTo(cx+s*.55,cy-s*.75,cx+s*1.1,cy,cx,cy+s*.75);t.fill()});
+  if(k==='cf')return tile(u*3,u*3,t=>{t.fillStyle='#5E3D2C';t.fillRect(0,0,u*3,u*3);
+    [['#FF8FB1',.4,.5],['#FFD84D',1.5,.3],['#6EBDEB',2.5,.9],['#74CFA0',.9,1.6],['#B596EA',2.2,2.1],['#FFB347',.5,2.5],['#FF8FB1',1.7,2.7],['#FFD84D',2.6,1.5]]
+      .forEach(([c,a,b])=>{t.fillStyle=c;t.beginPath();t.arc(a*u,b*u,Math.max(1.2,u*.2),0,7);t.fill()})});
+  return '#fff';
+}
+function render(P,pct,shadow,depth,edge='w'){
+  const {cw,ch,size,dist,cut}=P,N=cw*ch,r=pct/100*size;
+  const lay=new OffscreenCanvas(cw,ch),lx=lay.getContext('2d');
+  if(r>=0.5){
+    const A=new Uint8ClampedArray(N);
+    for(let i=0;i<N;i++)A[i]=(r+0.5-dist[i])*255;
+    // 填補白邊內的小洞（例如手臂和身體間的小縫）
+    const vis=new Uint8Array(N),q=new Int32Array(N);let qh=0,qt=0;
+    const push=i=>{if(!vis[i]&&dist[i]>r){vis[i]=1;q[qt++]=i}};
+    for(let x=0;x<cw;x++){push(x);push((ch-1)*cw+x)}for(let y=0;y<ch;y++){push(y*cw);push(y*cw+cw-1)}
+    while(qh<qt){const p=q[qh++],x=p%cw;if(x>0)push(p-1);if(x<cw-1)push(p+1);if(p>=cw)push(p-cw);if(p<N-cw)push(p+cw)}
+    const lim=size*size*0.02,reg=new Int32Array(N);
+    for(let i=0;i<N;i++){if(vis[i]||dist[i]<=r)continue;let qh2=0,qt2=0;q[qt2++]=i;vis[i]=2;
+      while(qh2<qt2){const p=q[qh2++],x=p%cw;const nb=[x>0?p-1:-1,x<cw-1?p+1:-1,p>=cw?p-cw:-1,p<N-cw?p+cw:-1];for(const n of nb){if(n>=0&&!vis[n]&&dist[n]>r){vis[n]=2;q[qt2++]=n}}}
+      if(qt2<=lim)for(let j=0;j<qt2;j++)A[q[j]]=255;}
+    const id=new ImageData(cw,ch);for(let i=0;i<N;i++){id.data[i*4]=255;id.data[i*4+1]=255;id.data[i*4+2]=255;id.data[i*4+3]=A[i]}
+    lx.putImageData(id,0,0);
+    // 外框不是白色時，用顏色或花樣蓋過白邊的範圍
+    if(edge!=='w'){lx.globalCompositeOperation='source-in';lx.fillStyle=edgePaint(lx,cw,ch,r,edge);lx.fillRect(0,0,cw,ch);lx.globalCompositeOperation='source-over'}
+  }
+  lx.drawImage(cut,0,0);
+  const top=depth?addDepth(lay,cw,ch,size):lay;
+  // 陰影
+  const sh=shadow?Math.round(size*0.035)+2:0;
+  const out=document.createElement('canvas');out.width=top.width+sh*2;out.height=top.height+sh*2;
+  const ox=out.getContext('2d');
+  if(shadow){ox.shadowColor='rgba(58,46,57,.38)';ox.shadowBlur=sh*0.9;ox.shadowOffsetY=sh*(depth?.65:.45);if(depth)ox.shadowOffsetX=sh*.2}
+  ox.drawImage(top,sh,sh);
+  return trim(out);
+}
+// 立體感：側面紙厚（往右下）、邊緣斜面明暗、亮面膜反光
+function addDepth(lay,cw,ch,size){
+  const th=Math.max(3,Math.round(size*0.022)),k=Math.max(2,size*0.01);
+  const tint=col=>{const c=new OffscreenCanvas(cw,ch),x=c.getContext('2d');x.drawImage(lay,0,0);x.globalCompositeOperation='source-in';x.fillStyle=col;x.fillRect(0,0,cw,ch);return c};
+  const sil=tint('#fff'),sideD=tint('#B4A795'),sideL=tint('#DCD1C2');
+  // 表面（只在貼紙範圍內加光影）
+  const t=new OffscreenCanvas(cw,ch),o=t.getContext('2d');o.drawImage(lay,0,0);
+  const rim=(dx,dy,col,b)=>{const c=new OffscreenCanvas(cw,ch),x=c.getContext('2d');
+    x.drawImage(sil,0,0);x.globalCompositeOperation='destination-out';x.filter=`blur(${b}px)`;x.drawImage(sil,dx,dy);
+    x.filter='none';x.globalCompositeOperation='source-in';x.fillStyle=col;x.fillRect(0,0,cw,ch);o.drawImage(c,0,0)};
+  rim(-k,-k,'rgba(58,46,57,.26)',k);        // 右下斜面暗
+  rim(-k*.35,-k*.35,'rgba(58,46,57,.22)',0); // 右下邊緣細線
+  o.globalCompositeOperation='source-atop';
+  let g=o.createLinearGradient(0,0,cw,ch);   // 整體受光：左上亮、右下略暗
+  g.addColorStop(0,'rgba(255,255,255,.2)');g.addColorStop(.5,'rgba(255,255,255,0)');g.addColorStop(1,'rgba(58,46,57,.12)');
+  o.fillStyle=g;o.fillRect(0,0,cw,ch);
+  g=o.createLinearGradient(0,0,cw,ch);       // 亮面膜：一道斜斜的反光
+  g.addColorStop(.18,'rgba(255,255,255,0)');g.addColorStop(.27,'rgba(255,255,255,.42)');g.addColorStop(.31,'rgba(255,255,255,.14)');g.addColorStop(.4,'rgba(255,255,255,0)');
+  o.fillStyle=g;o.fillRect(0,0,cw,ch);
+  // 疊起來：底下一層一層的紙厚，最上面是表面
+  const out=new OffscreenCanvas(cw+Math.ceil(th*.5),ch+th),q=out.getContext('2d');
+  for(let i=th;i>0;i--)q.drawImage(i>th*.45?sideD:sideL,i*.5,i);
+  q.drawImage(t,0,0);
+  return out;
+}
+function trim(c){
+  const x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height).data;let x0=c.width,y0=c.height,x1=-1,y1=-1;
+  for(let y=0;y<c.height;y++)for(let i=0;i<c.width;i++)if(d[(y*c.width+i)*4+3]>4){if(i<x0)x0=i;if(i>x1)x1=i;if(y<y0)y0=y;if(y>y1)y1=y}
+  if(x1<0)return c;
+  const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;o.getContext('2d').drawImage(c,-x0,-y0);return o;
+}
+
+/* ---------- 拍照流程 ---------- */
+let stream=null,facing='environment',P=null,curCanvas=null;
+async function startCam(){
+  try{
+    stopCam();
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1440}},audio:false});
+    const v=$('#vid');v.srcObject=stream;v.hidden=false;v.classList.toggle('mir',facing==='user');await v.play();
+    $('#vf0').hidden=true;$('#bShut').disabled=false;$('#bCam').textContent='換鏡頭';
+  }catch(e){console.warn(e);$('#vf0').hidden=false;$('#vf0').innerHTML='<div class="big">🙈</div><div>無法開啟鏡頭<br>請改用「選照片」</div>';$('#bShut').disabled=true}
+}
+function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}const v=$('#vid');v.hidden=true;$('#vf0').hidden=false;$('#bShut').disabled=true;$('#bCam').textContent='開鏡頭'}
+$('#bCam').onclick=()=>{if(stream)facing=facing==='user'?'environment':'user';startCam()};
+$('#bShut').onclick=()=>{
+  const v=$('#vid');const c=fit(v.videoWidth,v.videoHeight);const x=c.getContext('2d');
+  if(facing==='user'){x.translate(c.width,0);x.scale(-1,1)}
+  x.drawImage(v,0,0,c.width,c.height);stopCam();process(c);
+};
+$('#bAlbum').onclick=()=>$('#file').click();
+$('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const bm=await createImageBitmap(f,{imageOrientation:'from-image'});const c=fit(bm.width,bm.height);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);process(c)}
+  catch(err){toast('這張照片讀不出來')}};
+function fit(w,h,max=1280){const s=Math.min(1,max/Math.max(w,h));const c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);return c}
+
+async function process(c){
+  show('proc');$('#procImg').src=c.toDataURL('image/jpeg',.85);$('#pbar').style.width='0%';
+  try{
+    const t0=performance.now();
+    let t1,m;
+    for(;;){
+      await loadModel();
+      t1=performance.now();
+      $('#ptxt').textContent='正在找出主體…';$('#pbar').style.width='100%';
+      await new Promise(r=>setTimeout(r,30));
+      try{m=await segment(c);break}
+      catch(e){console.warn('摳圖執行失敗：',devInfo,e);const wasGpu=MODES[curIx].gpu;if(!dropMode())throw e;
+        // 顯示卡模式失敗後，同一個頁面內的其他模式也會受影響：先存照片，重新整理後自動續做
+        if(wasGpu){try{sessionStorage.setItem('stk-resume',c.toDataURL('image/jpeg',.92))}catch(x){}location.reload();return}$('#ptxt').textContent='這台電腦不支援「'+devInfo+'」，改用其他方式…';$('#pbar').style.width='0%'}
+    }
+    const t2=performance.now();
+    P=prepare(c,m);
+    const t3=performance.now();
+    stat(`運算方式：${devInfo}\n照片 ${c.width}×${c.height}\n載入模型 ${((t1-t0)/1000).toFixed(1)} 秒\n摳圖 ${((t2-t1)/1000).toFixed(1)} 秒\n白邊前處理 ${((t3-t2)/1000).toFixed(2)} 秒`);
+    if(!P){toast('找不到主體，換一張試試');show('shoot');return}
+    setEditMode(null);resetText();drawEdit();show("edit");
+  }catch(e){
+    console.error(e);$('#ptxt').textContent='摳圖失敗：'+(e&&e.message||e)+'\n請檢查網路後重試';
+    stat('摳圖失敗：'+(e&&e.message||e));
+    setTimeout(()=>show('shoot'),3500);
+  }
+}
+const TNAME=v=>v==0?'無':v<=1.5?'細':v<=3.5?'中':v<=5?'粗':'特粗';
+/* ---------- 文字（可選） ---------- */
+// 位置以貼紙本體的寬高比例記錄（0～1，可超出一點），大小以貼紙寬度的百分比記錄
+const TXCOL=['#F0567A','#2EA9DF','#3A2E39','#FFD84D','#6CC08B','#FFFFFF'];
+const TX={on:false,text:'',col:TXCOL[0],sz:16,x:.5,y:.86};
+let baseCanvas=null,txGeo=null;
+$('#txCol').innerHTML=TXCOL.map((c,i)=>`<button style="background:${c}" data-c="${c}" class="${i?'':'on'}" aria-label="文字顏色"></button>`).join('');
+// 把文字疊到貼紙上；文字超出貼紙範圍時自動加大畫布
+function compose(){
+  const b=baseCanvas,t=TX.text.trim(),hasT=TX.on&&!!t;
+  txGeo=null;
+  if(!hasT)return b;
+  const fs=Math.max(12,Math.round(b.width*TX.sz/100)),ow=Math.round(fs*.32);
+  const font=`${fs}px Huninn,"Noto Sans TC",sans-serif`;
+  const mx=document.createElement('canvas').getContext('2d');mx.font=font;
+  const tw=mx.measureText(t).width,cx=TX.x*b.width,cy=TX.y*b.height;
+  const T={cx,cy,x0:cx-tw/2-ow,x1:cx+tw/2+ow,y0:cy-fs*.65-ow,y1:cy+fs*.65+ow};
+  const px=Math.ceil(Math.max(0,-T.x0)),py=Math.ceil(Math.max(0,-T.y0));
+  const W=Math.ceil(Math.max(b.width,T.x1)+px),H=Math.ceil(Math.max(b.height,T.y1)+py);
+  const o=document.createElement('canvas');o.width=W;o.height=H;const x=o.getContext('2d');
+  x.drawImage(b,px,py);
+  x.font=font;x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';x.miterLimit=2;
+  const X=T.cx+px,Y=T.cy+py;
+  // 白色粗外框（像貼紙白邊），外框帶一點陰影
+  x.save();x.shadowColor='rgba(58,46,57,.3)';x.shadowBlur=ow*.6;x.shadowOffsetY=ow*.3;
+  x.strokeStyle='#fff';x.lineWidth=ow*2;x.strokeText(t,X,Y);x.restore();
+  // 白字時加深色細框，避免和白邊融在一起
+  if(TX.col==='#FFFFFF'){x.strokeStyle='#3A2E39';x.lineWidth=Math.max(2,fs*.08);x.strokeText(t,X,Y)}
+  x.fillStyle=TX.col;x.fillText(t,X,Y);
+  txGeo={px,py,bw:b.width,bh:b.height,x0:T.x0+px,x1:T.x1+px,y0:T.y0+py,y1:T.y1+py};
+  return o;
+}
+// 外框選擇區
+$('#edgeCol').innerHTML=EDGES.map(e=>`<button data-k="${e.k}" style="background:${e.c||e.css}${e.tc?';color:'+e.tc:''}" aria-label="外框 ${e.n}" title="${e.n}">${e.txt||''}</button>`).join('');
+function setEdge(k){EDGE=EDGES.some(e=>e.k===k)?k:'w';$('#eName').textContent=EDGES.find(e=>e.k===EDGE).n;
+  $('#edgeCol').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===EDGE))}
+$('#edgeCol').querySelectorAll('button').forEach(b=>b.onclick=()=>{setEdge(b.dataset.k);drawEdit()});
+// 新貼紙：文字、外框都回到預設（外框白色）
+function resetText(){Object.assign(TX,{on:false,text:"",col:TXCOL[0],sz:16,x:.5,y:.86});$("#txOn").checked=false;$("#txBox").hidden=true;$("#txIn").value="";$("#txSz").value=16;$("#txCol").querySelectorAll("button").forEach((b,i)=>b.classList.toggle("on",!i));
+  setEdge('w')}
+function showComposite(){
+  curCanvas=compose();
+  const cv=$('#cv');cv.width=curCanvas.width;cv.height=curCanvas.height;cv.getContext('2d').drawImage(curCanvas,0,0);
+  cv.classList.toggle('txdrag',!!txGeo);
+}
+function drawEdit(){
+  const t=+$('#thick').value;$('#tVal').textContent=TNAME(t);
+  baseCanvas=render(P,t,$("#shadow").checked,$("#depth").checked,EDGE);
+  showComposite();
+}
+let rq;$('#thick').oninput=()=>{cancelAnimationFrame(rq);rq=requestAnimationFrame(drawEdit)};
+$("#shadow").onchange=drawEdit;$("#depth").onchange=drawEdit;
+let rqT;const txRedraw=()=>{cancelAnimationFrame(rqT);rqT=requestAnimationFrame(showComposite)};
+$('#txOn').onchange=()=>{TX.on=$('#txOn').checked;$('#txBox').hidden=!TX.on;if(TX.on)$('#txIn').focus();txRedraw()};
+$('#txIn').oninput=()=>{TX.text=$('#txIn').value;txRedraw()};
+$('#txSz').oninput=()=>{TX.sz=+$('#txSz').value;txRedraw()};
+$('#txCol').querySelectorAll('button').forEach(b=>b.onclick=()=>{TX.col=b.dataset.c;$('#txCol').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));txRedraw()});
+// 在預覽上拖曳文字
+(()=>{const cv=$('#cv');let drag=null;
+  const pt=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height}};
+  cv.addEventListener('pointerdown',e=>{const p=pt(e),m=12*cv.width/cv.getBoundingClientRect().width;
+    const hit=g=>g&&!(p.x<g.x0-m||p.x>g.x1+m||p.y<g.y0-m||p.y>g.y1+m);
+    if(!hit(txGeo))return;const o=TX;
+    drag={sx:p.x,sy:p.y,ox:o.x,oy:o.y,g:txGeo,o};cv.setPointerCapture(e.pointerId);e.preventDefault()});
+  cv.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e),g=drag.g,o=drag.o;
+    // 拖曳時用開始那一刻的畫布比例換算，避免畫布變大時亂跳
+    o.x=Math.min(1.1,Math.max(-.1,drag.ox+(p.x-drag.sx)/g.bw));o.y=Math.min(1.15,Math.max(-.15,drag.oy+(p.y-drag.sy)/g.bh));txRedraw()});
+  const end=()=>{drag=null};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+})();
+/* ---------- 新貼紙／修改舊貼紙 ---------- */
+let editId=null,editAt=0;
+function setEditMode(id,at){
+  editId=id;editAt=at||0;
+  $('#edTtl').textContent=id?'修改貼紙':'你的貼紙';
+  $('#bRe').textContent=id?'取消':'重拍';
+  $('#bToBook').textContent=id?'儲存修改':'貼進貼紙本';
+}
+// 從貼紙本點「編輯」進來的，儲存或取消後回到那本貼紙本的同一頁
+let editFrom=null;
+async function backFromEdit(){
+  const f=editFrom;editFrom=null;
+  if(!f){show('mine');return}
+  cur=f.bk;pageIx=Math.min(f.pg,cur.pages.length-1);selId=f.sel;SM=await stickersMap();
+  $('#bkName').textContent=cur.name;show('book');renderPage();renderTray();
+}
+$('#bRe').onclick=()=>{if(editId){setEditMode(null);backFromEdit()}else show('shoot')};
+$('#bSave').onclick=async()=>{download(await toBlob(curCanvas),`貼紙_${stamp()}.png`);toast('已存成透明背景圖片')};
+$('#bCopy').onclick=()=>copyImg(toBlob(curCanvas));
+// 連同原始摳圖資料與設定一起存，之後才能重新編輯
+async function saveSticker(){
+  const blob=await toBlob(curCanvas);const id=editId||uid();
+  const st={id,blob,w:curCanvas.width,h:curCanvas.height,at:editId?editAt:Date.now(),
+    src:await P.cut.convertToBlob({type:'image/png'}),dist:P.dist,cw:P.cw,ch:P.ch,size:P.size,
+    cfg:{thick:+$('#thick').value,shadow:$('#shadow').checked,depth:$('#depth').checked,tx:{...TX},edge:EDGE}};
+  await put('stickers',st);
+  if(urlCache.has(id)){URL.revokeObjectURL(urlCache.get(id));urlCache.delete(id)}
+  return st;
+}
+$('#bToBook').onclick=async()=>{
+  if(editId){await saveSticker();setEditMode(null);toast('已儲存修改，貼紙本裡的也一起更新');await backFromEdit();return}
+  const st=await saveSticker();pickBook(st)};
+async function editSticker(st,from){
+  if(!st.src||!st.dist){toast('這張是舊版存的，沒有原始資料，不能重新編輯');return}
+  editFrom=from||null;
+  const bm=await createImageBitmap(st.src);const cut=new OffscreenCanvas(st.cw,st.ch);cut.getContext('2d').drawImage(bm,0,0);
+  P={cw:st.cw,ch:st.ch,size:st.size,dist:st.dist,cut};
+  const c=st.cfg||{};
+  $('#thick').value=c.thick??3;$('#shadow').checked=c.shadow??true;$('#depth').checked=c.depth??false;
+  resetText();
+  if(c.tx){Object.assign(TX,c.tx);$('#txOn').checked=TX.on;$('#txBox').hidden=!TX.on;$('#txIn').value=TX.text;$('#txSz').value=TX.sz;
+    $('#txCol').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.c===TX.col))}
+  setEdge(c.edge||'w');
+  setEditMode(st.id,st.at);drawEdit();show('edit');
+}
+
+/* ---------- 複製 ---------- */
+async function copyImg(blob){
+  try{await navigator.clipboard.write([new ClipboardItem({'image/png':Promise.resolve(blob)})]);toast('已複製，可以到聊天室貼上');return true}
+  catch(e){console.warn(e);toast('這個瀏覽器不能直接複製圖片，請改按「存成圖片」');return false}
+}
+
+/* ---------- 貼紙本 ---------- */
+let books=[],cur=null,pageIx=0,selId=null;
+// 一律依建立日期排序，新的在前面（2026-11-13 改：不再手動排順序）
+async function loadBooks(){books=(await all('books')).sort((a,b)=>b.at-a.at);return books}
+async function stickersMap(){const m=new Map();for(const s of await all('stickers'))m.set(s.id,s);return m}
+// 傳入 edit 時是「編輯」：改名稱與封面顏色，其他（頁面、建立日期）不動
+function bookForm(onDone,edit){
+  const def=`${new Date().getFullYear()} 出去玩`;let col=edit?edit.color:COLORS[0];
+  const box=document.createElement('div');
+  box.innerHTML=`<h4>${edit?'編輯貼紙本':'新增貼紙本'}</h4><input class="fld" id="bnm" maxlength="20" placeholder="例如：墾丁三天兩夜" value="${edit?esc(edit.name):''}">
+  <div class="cols">${COLORS.map(c=>`<button style="background:${c}" data-c="${c}" class="${c===col?'on':''}" aria-label="封面顏色"></button>`).join('')}</div>
+  <div class="row"><button class="sk grow" id="bcx">取消</button><button class="sk pri grow" id="bok">${edit?'儲存':'建立'}</button></div>`;
+  box.querySelectorAll('.cols button').forEach(b=>b.onclick=()=>{col=b.dataset.c;box.querySelectorAll('.cols button').forEach(x=>x.classList.toggle('on',x===b))});
+  box.querySelector('#bcx').onclick=closeSheet;
+  box.querySelector('#bok').onclick=async()=>{
+    if(edit){const nm=box.querySelector('#bnm').value.trim()||edit.name;edit.name=nm;edit.color=col;await put('books',edit);closeSheet();toast('已儲存');onDone(edit);return}
+    const nm=box.querySelector('#bnm').value.trim()||def;
+    const bk={id:uid(),name:nm,color:col,at:Date.now(),pages:[{items:[]}]};await put('books',bk);closeSheet();onDone(bk)};
+  openSheet(box);setTimeout(()=>box.querySelector('#bnm').focus(),50);
+}
+function openSheet(node){const i=$('#sheetIn');i.innerHTML='';i.appendChild(node);$('#sheet').classList.add('on')}
+function closeSheet(){$('#sheet').classList.remove('on')}
+$('#sheet').onclick=e=>{if(e.target.id==='sheet')closeSheet()};
+$('#bNew').onclick=()=>bookForm(bk=>openBook(bk)); // 標題列的小「＋ 新增」
+let bookEditing=false; // 標題列「編輯」切換；再按一次「完成」離開
+function setBookEditing(on){bookEditing=on;$('#books').classList.toggle('editing',on);$('#bEdit').textContent=on?'完成':'編輯';$('#bEdit').classList.toggle('yel',on)}
+$('#bEdit').onclick=()=>setBookEditing(!bookEditing);
+async function pickBook(st){
+  await loadBooks();
+  if(!books.length){bookForm(bk=>openBook(bk,st.id));return}
+  const box=document.createElement('div');
+  box.innerHTML=`<h4>貼進哪一本？</h4><div class="pick">${books.map(b=>`<button class="sk" data-id="${b.id}"><i style="background:${b.color}"></i><span class="grow">${esc(b.name)}</span></button>`).join('')}</div>
+  <div class="row"><button class="sk grow" id="pkMine">先放我的貼紙</button><button class="sk yel grow" id="pkNew">＋新的一本</button></div>`;
+  box.querySelectorAll('.pick button').forEach(b=>b.onclick=()=>{closeSheet();openBook(books.find(x=>x.id===b.dataset.id),st.id)});
+  box.querySelector('#pkNew').onclick=()=>bookForm(bk=>openBook(bk,st.id));
+  box.querySelector('#pkMine').onclick=()=>{closeSheet();toast('已收進我的貼紙');show('mine')};
+  openSheet(box);
+}
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function renderBooks(){
+  await loadBooks();const sm=await stickersMap();
+  const el=$('#books');
+  // 依建立月份分組：2026 年 11 月（同年省略年份）
+  const now=new Date(),mKey=t=>{const d=new Date(t);return d.getFullYear()+'-'+d.getMonth()};
+  const mLbl=t=>{const d=new Date(t);return (d.getFullYear()!==now.getFullYear()?d.getFullYear()+' 年 ':'')+(d.getMonth()+1)+' 月'};
+  const cnt={};books.forEach(b=>{const k=mKey(b.at);cnt[k]=(cnt[k]||0)+1});
+  let last='';
+  el.innerHTML=(books.length?'<div class="bhint">點封面可改名稱、封面顏色</div>':'')+books.map(b=>{
+    const ids=[...new Set(b.pages.flatMap(p=>p.items.map(i=>i.sid)))].filter(i=>sm.has(i));
+    const d=new Date(b.at),k=mKey(b.at),h=k!==last?`<div class="dh">${mLbl(b.at)}<span>${cnt[k]} 本</span></div>`:'';last=k;
+    return h+`<div class="bk" role="button" tabindex="0" data-id="${b.id}" style="background:${b.color}"><button class="x" title="刪除這本">刪除</button><div class="nm">${esc(b.name)}</div>
+    <div class="meta">${d.getMonth()+1}/${d.getDate()}・${b.pages.length} 頁・${ids.length} 張</div></div>`}).join('');
+  el.querySelectorAll('.bk[data-id]').forEach(c=>c.onclick=e=>{
+    const bk=books.find(x=>x.id===c.dataset.id);
+    if(e.target.closest('.x')){e.stopPropagation();delBookAsk(bk);return}
+    if(bookEditing){bookForm(()=>renderBooks(),bk);return}
+    openBook(bk);
+  });
+  if(!books.length)el.insertAdjacentHTML('beforeend','<div class="empty">還沒有貼紙本<br>出去玩之前先開一本吧</div>');
+}
+function delBookAsk(bk){
+  const box=document.createElement('div');
+  box.innerHTML=`<h4>刪除「${esc(bk.name)}」？</h4><p style="font-size:14px;margin:6px 0 12px">這本裡的排版會一起刪掉，而且無法復原。<br>貼紙本身不會刪，還在「我的貼紙」裡。</p>
+  <div class="row"><button class="sk grow" id="dcx">取消</button><button class="sk pri grow" id="dok">刪除</button></div>`;
+  box.querySelector('#dcx').onclick=closeSheet;
+  box.querySelector('#dok').onclick=async()=>{await del('books',bk.id);closeSheet();toast('已刪除');
+    renderBooks()};
+  openSheet(box);
+}
+let SM=new Map();
+async function openBook(bk,addSid){
+  cur=bk;pageIx=bk.pages.length-1;selId=null;SM=await stickersMap();
+  $('#bkName').textContent=bk.name;show('book');
+  if(addSid)addItem(addSid);
+  renderPage();renderTray();
+}
+function addItem(sid){
+  const s=SM.get(sid);if(!s)return;
+  const items=cur.pages[pageIx].items;const z=items.reduce((m,i)=>Math.max(m,i.z),0)+1;
+  const n=items.length;
+  const it={id:uid(),sid,x:.5+((n%3)-1)*.18,y:.45+((Math.floor(n/3)%3)-1)*.2,w:.42,rot:Math.round(Math.random()*14-7),z};
+  items.push(it);selId=it.id;saveBook();renderPage();
+}
+let saveT;function saveBook(){clearTimeout(saveT);saveT=setTimeout(()=>put('books',cur),250)}
+function renderPage(){
+  const pg=$('#page'),p=cur.pages[pageIx];
+  const d=new Date(cur.at);
+  pg.innerHTML=`${pageIx===0?`<div class="tape" style="left:48px;transform:rotate(-6deg)"></div><div class="hd" style="top:18px">${esc(cur.name)}　${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}</div>`:''}<div class="pno">${pageIx+1}</div>`;
+  for(const it of [...p.items].sort((a,b)=>a.z-b.z)){
+    const s=SM.get(it.sid);if(!s)continue;
+    const e=document.createElement('div');e.className='it'+(it.id===selId?' sel':'');e.dataset.id=it.id;
+    e.innerHTML=`<img src="${sUrl(s)}" alt="貼紙"><span class="hdl dl" title="移除">✕</span><span class="hdl fp" title="左右對調">⇄</span><span class="hdl rs" title="旋轉縮放">↻</span><span class="hdl ed" title="編輯">✎</span>`;
+    place(e,it);pg.appendChild(e);bindItem(e,it);
+  }
+  $('#pInfo').textContent=`第 ${pageIx+1} / ${cur.pages.length} 頁`;
+  $('#pPrev').disabled=pageIx===0;$('#pNext').disabled=pageIx===cur.pages.length-1;
+}
+function place(e,it){e.style.left=it.x*100+'%';e.style.top=it.y*100+'%';e.style.width=it.w*100+'%';e.style.transform=`translate(-50%,-50%) rotate(${it.rot}deg)`;e.style.zIndex=it.z;e.querySelector('img').style.transform=it.flip?'scaleX(-1)':''}
+function select(id){selId=id;document.querySelectorAll('#page .it').forEach(x=>x.classList.toggle('sel',x.dataset.id===id))}
+function bindItem(e,it){
+  const pg=$('#page');
+  e.addEventListener('pointerdown',ev=>{
+    ev.stopPropagation();ev.preventDefault();
+    const items=cur.pages[pageIx].items;
+    if(ev.target.classList.contains('dl')){cur.pages[pageIx].items=items.filter(x=>x!==it);selId=null;saveBook();renderPage();return}
+    if(ev.target.classList.contains('fp')){it.flip=!it.flip;place(e,it);saveBook();return}
+    if(ev.target.classList.contains('ed')){const s=SM.get(it.sid);if(!s)return;
+      if(!s.src||!s.dist){toast('這張是舊版存的，沒有原始資料，不能重新編輯');return}
+      clearTimeout(saveT);put('books',cur);editSticker(s,{bk:cur,pg:pageIx,sel:it.id});return}
+    if(it.id!==selId){it.z=items.reduce((m,i)=>Math.max(m,i.z),0)+1;e.style.zIndex=it.z;select(it.id)}
+    const R=pg.getBoundingClientRect();
+    const cx=R.left+it.x*R.width,cy=R.top+it.y*R.height;
+    const rs=ev.target.classList.contains('rs');
+    const st={px:ev.clientX,py:ev.clientY,x:it.x,y:it.y,w:it.w,rot:it.rot,a:Math.atan2(ev.clientY-cy,ev.clientX-cx),d:Math.hypot(ev.clientX-cx,ev.clientY-cy)};
+    e.setPointerCapture(ev.pointerId);
+    const mv=m=>{
+      if(rs){const a=Math.atan2(m.clientY-cy,m.clientX-cx),d=Math.hypot(m.clientX-cx,m.clientY-cy);
+        it.rot=st.rot+(a-st.a)*180/Math.PI;it.w=Math.min(1.4,Math.max(.12,st.w*d/Math.max(st.d,1)))}
+      else{it.x=Math.min(1,Math.max(0,st.x+(m.clientX-st.px)/R.width));it.y=Math.min(1,Math.max(0,st.y+(m.clientY-st.py)/R.height))}
+      place(e,it);
+    };
+    const up=()=>{e.removeEventListener('pointermove',mv);e.removeEventListener('pointerup',up);e.removeEventListener('pointercancel',up);saveBook()};
+    e.addEventListener('pointermove',mv);e.addEventListener('pointerup',up);e.addEventListener('pointercancel',up);
+  });
+}
+// 左右滑動翻頁（在空白處滑）
+$('#page').addEventListener('pointerdown',e=>{if(e.target.id!=='page')return;select(null);
+  const x0=e.clientX,y0=e.clientY;
+  const up=u=>{removeEventListener('pointerup',up);const dx=u.clientX-x0,dy=u.clientY-y0;
+    if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.3)flipTo(pageIx+(dx<0?1:-1))};
+  addEventListener('pointerup',up)});
+// 翻頁動畫：以左邊裝訂處為軸，下一頁＝這頁翻走，上一頁＝上一頁翻回來蓋上
+let flipping=false;
+function flipTo(ix){
+  if(flipping||ix===pageIx||ix<0||ix>=cur.pages.length)return;
+  const fwd=ix>pageIx,pg=$('#page'),wrap=$('#pwrap');
+  const snap=()=>{const c=pg.cloneNode(true);c.removeAttribute('id');c.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));return c};
+  const old=snap();
+  pageIx=ix;selId=null;renderPage();
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  flipping=true;let leaf=old,under=null;
+  if(!fwd){under=old;under.classList.add('under');wrap.appendChild(under);leaf=snap();pg.style.visibility='hidden'}
+  leaf.classList.add('leaf');const sh=document.createElement('div');sh.className='shade';leaf.appendChild(sh);wrap.appendChild(leaf);
+  const opt={duration:480,easing:fwd?'cubic-bezier(.45,0,.75,.6)':'cubic-bezier(.25,.4,.55,1)'};
+  const k=[{transform:'rotateY(0deg)'},{transform:'rotateY(-90deg)'}],ks=[{opacity:0},{opacity:1}];
+  const a=leaf.animate(fwd?k:k.reverse(),opt);sh.animate(fwd?ks:ks.reverse(),opt);
+  const end=()=>{leaf.remove();under&&under.remove();pg.style.visibility='';flipping=false};
+  a.onfinish=end;a.oncancel=end;
+}
+function renderTray(){
+  const list=[...SM.values()].sort((a,b)=>b.at-a.at);
+  $('#tray').innerHTML=list.length?list.map(s=>`<button data-id="${s.id}" aria-label="貼上這張"><img src="${sUrl(s)}" alt=""></button>`).join(''):'<div class="note" style="padding:8px">還沒有貼紙，先去拍一張吧</div>';
+  $('#tray').querySelectorAll('button').forEach(b=>b.onclick=()=>addItem(b.dataset.id));
+}
+$('#bBack').onclick=()=>show('books');
+$('#pPrev').onclick=()=>flipTo(pageIx-1);
+$('#pNext').onclick=()=>flipTo(pageIx+1);
+$('#pAdd').onclick=()=>{if(flipping)return;cur.pages.push({items:[]});saveBook();flipTo(cur.pages.length-1);toast('加了一頁')};
+$('#pExp').onclick=async()=>{
+  const W=1080,H=1440,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  x.fillStyle='#FBF9F5';x.fillRect(0,0,W,H);
+  x.fillStyle='#E2DBD0';for(let y=27;y<H;y+=54)for(let i=27;i<W;i+=54){x.beginPath();x.arc(i,y,3.3,0,7);x.fill()}
+  const g=x.createLinearGradient(0,0,90,0);g.addColorStop(0,'#ECE5DA');g.addColorStop(.7,'#F6F2EB');g.addColorStop(1,'#E6DED1');x.fillStyle=g;x.fillRect(0,0,90,H);
+  x.strokeStyle='#D3C9BB';x.lineWidth=4;x.setLineDash([12,9]);x.beginPath();x.moveTo(90,0);x.lineTo(90,H);x.stroke();x.setLineDash([]);
+  for(let y=78;y<H;y+=108){x.fillStyle='#C9BFB2';x.beginPath();x.arc(42,y,19.5,0,7);x.fill();x.fillStyle='#3A2E39';x.beginPath();x.arc(42,y,13.5,0,7);x.fill()}
+  if(pageIx===0){const d=new Date(cur.at);
+    x.fillStyle='rgba(255,216,77,.7)';x.save();x.translate(237,10);x.rotate(-6*Math.PI/180);x.fillRect(-93,-27,186,54);x.restore();
+    x.fillStyle='#6F6370';x.font='700 44px "LXGW WenKai TC",serif';x.fillText(`${cur.name}　${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`,120,100)}
+  for(const it of [...cur.pages[pageIx].items].sort((a,b)=>a.z-b.z)){
+    const s=SM.get(it.sid);if(!s)continue;const bm=await createImageBitmap(s.blob);
+    const w=it.w*W,h=w*bm.height/bm.width;
+    x.save();x.translate(it.x*W,it.y*H);x.rotate(it.rot*Math.PI/180);if(it.flip)x.scale(-1,1);x.shadowColor='rgba(58,46,57,.3)';x.shadowBlur=8;x.shadowOffsetY=6;x.drawImage(bm,-w/2,-h/2,w,h);x.restore();
+  }
+  download(await toBlob(c,'image/jpeg'),`貼紙本_${cur.name}_第${pageIx+1}頁.jpg`);toast('這一頁已存成圖片');
+};
+
+/* ---------- 我的貼紙 ---------- */
+async function renderMine(){
+  const list=(await all('stickers')).sort((a,b)=>b.at-a.at);
+  $('#mineN').textContent=`共 ${list.length} 張`;
+  const el=$('#mine');
+  // 依拍攝日期分組：今天、昨天、M 月 D 日（不同年份加年）
+  const dayKey=t=>{const d=new Date(t);return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()};
+  const dayLbl=t=>{const d=new Date(t),n=new Date(),y=new Date(n.getFullYear(),n.getMonth(),n.getDate()-1);
+    if(dayKey(t)===dayKey(+n))return '今天';if(dayKey(t)===dayKey(+y))return '昨天';
+    return (d.getFullYear()!==n.getFullYear()?d.getFullYear()+' 年 ':'')+(d.getMonth()+1)+' 月 '+d.getDate()+' 日'};
+  const cnt={};list.forEach(s=>{const k=dayKey(s.at);cnt[k]=(cnt[k]||0)+1});
+  let last='';
+  el.innerHTML=list.length?list.map(s=>{const k=dayKey(s.at),h=k!==last?`<div class="dh">${dayLbl(s.at)}<span>${cnt[k]} 張</span></div>`:'';last=k;
+    return h+`<div class="cell"><img src="${sUrl(s)}" alt="貼紙" data-id="${s.id}"><button class="x" data-id="${s.id}">刪除</button></div>`}).join(''):'<div class="empty" style="grid-column:1/-1">還沒有貼紙<br>到「拍貼紙」拍一張吧</div>';
+  el.querySelectorAll('img[data-id]').forEach(im=>im.onclick=()=>mineMenu(list.find(s=>s.id===im.dataset.id)));
+  el.querySelectorAll('.x').forEach(b=>b.onclick=async()=>{
+    if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='再按刪除';setTimeout(()=>{b.classList.remove('arm');b.textContent='刪除'},2500);return}
+    await del('stickers',b.dataset.id);toast('已刪除');renderMine();
+  });
+}
+// 點一張貼紙：編輯、複製、存圖
+function mineMenu(st){
+  if(!st)return;
+  const box=document.createElement('div');
+  box.innerHTML=`<h4>這張貼紙</h4><div class="mprev"><img src="${sUrl(st)}" alt="貼紙"></div>
+  <div class="acts">
+    <button class="sk pri full" id="mEd">修改（文字、白邊）</button>
+    <button class="sk" id="mCp">複製圖片</button>
+    <button class="sk blu" id="mSv">存成圖片</button>
+    <button class="sk full" id="mCx">關閉</button>
+  </div>${st.src?'':'<div class="hint">這張是舊版存的，不能重新編輯</div>'}`;
+  const ed=box.querySelector('#mEd');if(!st.src)ed.disabled=true;
+  ed.onclick=()=>{closeSheet();editSticker(st)};
+  box.querySelector('#mCp').onclick=()=>copyImg(st.blob);
+  box.querySelector('#mSv').onclick=()=>{download(st.blob,`貼紙_${stamp()}.png`);toast('已存成透明背景圖片')};
+  box.querySelector('#mCx').onclick=closeSheet;
+  openSheet(box);
+}
+/* ---------- 換運算方式後自動續做 ---------- */
+(()=>{let u;try{u=sessionStorage.getItem('stk-resume');sessionStorage.removeItem('stk-resume')}catch(e){}
+  if(!u)return;const im=new Image();im.onload=()=>{const c=fit(im.width,im.height);c.getContext('2d').drawImage(im,0,0,c.width,c.height);process(c)};im.src=u})();
+</script>
+</body>
+</html>
