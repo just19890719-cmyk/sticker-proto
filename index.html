@@ -339,7 +339,7 @@ nav.bt button.on{color:var(--k);background:#FFE27A}
 
       <!-- 我的貼紙 -->
       <section class="view" id="v-mine">
-        <h2 class="ttl">我的貼紙 <small id="mineN"></small></h2>
+        <h2 class="ttl" style="display:flex;align-items:center;gap:6px">我的貼紙 <small id="mineN" class="grow"></small><button class="sk" id="bAbout" style="font-family:var(--fb);font-size:13px;padding:4px 10px">關於</button></h2>
         <div class="mine" id="mine"></div>
       </section>
 
@@ -1013,6 +1013,15 @@ async function pickBook(st){
   box.querySelector('#pkMine').onclick=()=>{closeSheet();toast('已收進我的貼紙');show('mine')};
   openSheet(box);
 }
+function aboutSheet(){
+  const box=document.createElement('div');
+  box.innerHTML=`<h4>關於 cam貼貼</h4><div class="pick"><a class="sk" href="privacy.html" style="text-decoration:none;text-align:center">隱私權政策</a><a class="sk" href="terms.html" style="text-decoration:none;text-align:center">使用條款與免責聲明</a></div>
+  <p style="margin:0 0 12px;font-size:13px;line-height:1.6;opacity:.8">照片只在你的手機上處理，不會上傳。<br>網頁原型版（2026-11-14）</p>
+  <div class="row"><button class="sk grow" id="abX">關閉</button></div>`;
+  box.querySelector('#abX').onclick=closeSheet;
+  openSheet(box);
+}
+$('#bAbout').onclick=aboutSheet;
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function renderBooks(){
   await loadBooks();const sm=await stickersMap();
