@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>cam貼貼 支援 Support</title>
+<meta name="description" content="cam貼貼 客服與常見問題 / cam貼貼 support and FAQ">
+<style>
+:root{--bg:#F6EFE3;--panel:#FFFDF8;--ink:#3A2E39;--sub:#6F6370;--pink:#F0567A;--yel:#FFD84D;--blue:#2EA9DF;--dot:#E3D6C2}
+@media (prefers-color-scheme:dark){:root{--bg:#1F1A21;--panel:#2B2430;--ink:#F5ECE6;--sub:#C4B6C0;--dot:#352C3A}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);background-image:radial-gradient(var(--dot) 1.3px,transparent 1.5px);background-size:18px 18px;color:var(--ink);font:16px/1.75 'Noto Sans TC',system-ui,-apple-system,'Segoe UI',sans-serif}
+main{max-width:720px;margin:0 auto;padding:20px 16px 56px}
+.hero{position:relative;text-align:center;padding:10px 0 4px}
+.hero svg{width:190px;height:auto;display:block;margin:0 auto -6px;filter:drop-shadow(2px 4px 0 rgba(58,46,57,.25))}
+h1{font-size:30px;margin:6px 0 2px;line-height:1.3}
+h1 span{display:inline-block;background:var(--pink);color:#fff;padding:0 12px;border-radius:12px;border:2.5px solid var(--ink);box-shadow:2px 3px 0 var(--ink);transform:rotate(-2deg)}
+.lead{color:var(--sub);margin:8px 0 0}
+.tabs{display:flex;gap:8px;justify-content:center;margin:18px 0 14px}
+.tabs button{font:inherit;font-weight:700;color:var(--ink);background:var(--panel);border:2.5px solid var(--ink);border-radius:999px;padding:4px 18px;cursor:pointer;box-shadow:2px 3px 0 var(--ink)}
+.tabs button[aria-pressed=true]{background:var(--yel);color:#3A2E39}
+.card{background:var(--panel);border:2.5px solid var(--ink);border-radius:18px;padding:16px 18px;box-shadow:3px 4px 0 var(--ink);margin-bottom:16px}
+h2{font-size:19px;margin:0 0 6px;color:var(--pink)}
+p,li{margin:4px 0}ul{padding-left:1.3em}
+a{color:inherit}
+.mail{display:inline-block;margin-top:6px;font-weight:900;font-size:18px;color:#fff;background:var(--blue);border:2.5px solid var(--ink);border-radius:14px;padding:6px 16px;text-decoration:none;box-shadow:2px 3px 0 var(--ink)}
+.mail:active{transform:translate(2px,3px);box-shadow:none}
+details{border-top:2px dashed var(--dot);padding:8px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:700}
+.small{font-size:13.5px;color:var(--sub)}
+footer{text-align:center;color:var(--sub);font-size:13px;margin-top:22px}
+footer a{margin:0 6px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body><main>
+
+<div class="hero">
+<!-- 貼紙風的相機（照 App 圖示配色手繪的 SVG） -->
+<svg viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+ <defs><filter id="st" x="-20%" y="-20%" width="140%" height="140%"><feMorphology in="SourceAlpha" operator="dilate" radius="5" result="d"/><feFlood flood-color="#fff"/><feComposite in2="d" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+ <g filter="url(#st)" stroke="#3A2E39" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+  <rect x="62" y="22" width="44" height="26" rx="7" fill="#FFF8EC"/>
+  <rect x="136" y="30" width="22" height="16" rx="5" fill="#FFD84D" stroke-width="3.4"/>
+  <rect x="22" y="42" width="160" height="106" rx="24" fill="#F0567A"/>
+  <rect x="132" y="56" width="32" height="18" rx="5" fill="#FFF1B8" stroke-width="3"/>
+  <circle cx="102" cy="96" r="38" fill="#FFF8EC"/>
+  <circle cx="102" cy="96" r="25" fill="#2EA9DF" stroke-width="3.4"/>
+  <circle cx="94" cy="87" r="7" fill="#fff" stroke="none"/>
+  <circle cx="42" cy="62" r="6" fill="#FFF8EC" stroke="none"/>
+  <path d="M158 112c-6-7-17-2-12 6l12 11 12-11c5-8-6-13-12-6z" fill="#FFD84D" stroke-width="3.4"/>
+ </g>
+ <g fill="#FFD84D" stroke="#3A2E39" stroke-width="3" stroke-linejoin="round"><path d="M196 26l4 9 10 1-8 7 3 10-9-6-9 6 3-10-8-7 10-1z"/><path d="M20 20l3 6 7 1-5 5 2 7-7-4-6 4 2-7-5-5 7-1z" transform="scale(.9) translate(6 4)"/></g>
+</svg>
+<h1><span>cam貼貼</span></h1>
+<p class="lead" data-zh="客服與常見問題" data-en="Support &amp; FAQ">客服與常見問題</p>
+</div>
+
+<div class="tabs" role="group" aria-label="Language">
+<button id="bzh" aria-pressed="true">繁體中文</button>
+<button id="ben" aria-pressed="false">English</button>
+</div>
+
+<!-- ============ 繁體中文 ============ -->
+<section id="zh">
+<div class="card">
+<h2>聯絡我們</h2>
+<p>遇到問題、有建議，或購買出了狀況，請來信。我們會盡快回覆。</p>
+<a class="mail" href="mailto:kpyluca.studio@gmail.com?subject=cam%E8%B2%BC%E8%B2%BC%20%E5%AE%A2%E6%9C%8D">kpyluca.studio@gmail.com</a>
+<p class="small">來信時請附上：手機機型、iOS 版本、發生了什麼事（有畫面截圖更好）。請不要在信裡寫密碼或付款資料。</p>
+</div>
+
+<div class="card">
+<h2>常見問題</h2>
+<details><summary>貼紙存在哪裡？換手機會不見嗎？</summary>
+<p>貼紙和貼紙本只存在你的手機裡，我們沒有伺服器、也沒有備份。刪除應用程式、換手機都會讓貼紙消失，重要的貼紙請先用「分享圖片」存到相簿。已購買的完整版可以用「恢復購買」取回。</p></details>
+<details><summary>摳圖摳不乾淨怎麼辦？</summary>
+<p>在編輯台按右上角的橡皮擦，用手指擦掉多出來的部分，再按打勾，白邊會自動重算。人、寵物、物品在 iOS 17 以上都支援；iOS 15～16 只支援人物。主體和背景顏色很像、光線太暗時比較容易摳錯，換個角度或亮一點的地方再拍會好很多。</p></details>
+<details><summary>免費版和完整版有什麼差別？</summary>
+<p>免費版每天可以存 3 張新貼紙，用完可以自己選擇看一段廣告再存 3 張（每天最多靠廣告多 9 張）；貼紙本 1 本；花樣外框與花樣文字不能存檔。完整版是一次買斷：不限張數、7 種花樣外框與花樣文字、貼紙本不限本數、沒有廣告。</p></details>
+<details><summary>我買了完整版但沒有生效？</summary>
+<p>到「我的貼紙」右上角的「關於」，按「恢復購買」，並確認使用的是購買時的蘋果帳號。還是不行請來信，附上蘋果寄給你的收據信會更快。</p></details>
+<details><summary>怎麼退款？</summary>
+<p>付款由蘋果處理，退款請到 <a href="https://reportaproblem.apple.com" rel="noopener">reportaproblem.apple.com</a> 向蘋果申請，我們無法直接退款。</p></details>
+<details><summary>為什麼看不到廣告？</summary>
+<p>需要連上網路，而且當天廣告可能暫時沒有庫存。稍後再試，或解鎖完整版就不需要看廣告。</p></details>
+<details><summary>有哪些語言？</summary>
+<p>繁體中文、English、日本語、한국어、简体中文、ไทย、Español、Français、Deutsch、Português。第一次開啟會跟著手機語言，也可以在「拍貼紙」右上角的語言按鈕更改。</p></details>
+</div>
+
+<div class="card">
+<h2>隱私與條款</h2>
+<p>照片只在你的手機上處理，不會上傳。詳情請見 <a href="privacy.html">隱私權政策</a> 與 <a href="terms.html">使用條款</a>。</p>
+</div>
+</section>
+
+<!-- ============ English ============ -->
+<section id="en" hidden>
+<div class="card">
+<h2>Contact us</h2>
+<p>If something goes wrong, you have a suggestion, or a purchase didn't work, please write to us. We'll reply as soon as we can.</p>
+<a class="mail" href="mailto:kpyluca.studio@gmail.com?subject=cam%20support">kpyluca.studio@gmail.com</a>
+<p class="small">Please include your phone model, iOS version and what happened (a screenshot helps). Never send passwords or payment details by email.</p>
+</div>
+
+<div class="card">
+<h2>FAQ</h2>
+<details><summary>Where are my stickers stored? Will I lose them if I change phones?</summary>
+<p>Stickers and albums are stored only on your phone. We have no servers and no backups. Deleting the app or changing phones removes them, so please use "Share" to save important stickers to your photo library first. A purchased full version can be recovered with "Restore purchase".</p></details>
+<details><summary>The cutout isn't clean. What can I do?</summary>
+<p>In the editor, tap the eraser at the top right, rub out the extra parts, then tap the check mark. The border is recalculated automatically. People, pets and objects are supported on iOS 17 or later; on iOS 15–16 only people. Cutouts are harder when the subject and background look alike or the light is dim, so try another angle or a brighter place.</p></details>
+<details><summary>What's the difference between free and full version?</summary>
+<p>The free version lets you save 3 new stickers a day; when you run out you may choose to watch an ad to save 3 more (up to 9 extra a day). It includes 1 album, and patterned borders and text can't be saved. The full version is a one-time purchase: unlimited stickers, 7 patterned borders and text styles, unlimited albums and no ads.</p></details>
+<details><summary>I bought the full version but it isn't active.</summary>
+<p>Open "About" at the top right of "My Stickers", tap "Restore purchase", and make sure you use the Apple ID you bought with. If it still doesn't work, email us with Apple's receipt.</p></details>
+<details><summary>How do I get a refund?</summary>
+<p>Payments are handled by Apple. Please request a refund at <a href="https://reportaproblem.apple.com" rel="noopener">reportaproblem.apple.com</a>. We can't issue refunds directly.</p></details>
+<details><summary>Why don't I see an ad?</summary>
+<p>You need an internet connection, and sometimes no ad is available. Try again later, or unlock the full version to remove ads.</p></details>
+<details><summary>Which languages are supported?</summary>
+<p>繁體中文, English, 日本語, 한국어, 简体中文, ไทย, Español, Français, Deutsch, Português. The app follows your phone's language on first launch; you can change it with the language button at the top right of "Snap".</p></details>
+</div>
+
+<div class="card">
+<h2>Privacy and terms</h2>
+<p>Photos are processed on your phone and never uploaded. See the <a href="privacy-en.html">Privacy Policy</a> and <a href="terms-en.html">Terms of Use</a>.</p>
+</div>
+</section>
+
+<footer>© 2026 Luca studio · <a href="./">cam貼貼</a></footer>
+</main>
+<script>
+(function(){
+  var zh=document.getElementById('zh'),en=document.getElementById('en'),bz=document.getElementById('bzh'),be=document.getElementById('ben');
+  var lead=document.querySelector('.lead');
+  function set(l){
+    var isZh=l==='zh';
+    zh.hidden=!isZh;en.hidden=isZh;
+    bz.setAttribute('aria-pressed',isZh);be.setAttribute('aria-pressed',!isZh);
+    document.documentElement.lang=isZh?'zh-Hant':'en';
+    lead.innerHTML=isZh?lead.dataset.zh:lead.dataset.en;
+    try{localStorage.setItem('lang',l)}catch(e){}
+  }
+  bz.onclick=function(){set('zh')};be.onclick=function(){set('en')};
+  var q=(location.search.match(/lang=(zh|en)/)||[])[1],s=null;
+  try{s=localStorage.getItem('lang')}catch(e){}
+  var nav=(navigator.language||'').toLowerCase();
+  set(q||s||(nav.indexOf('zh')===0?'zh':'en'));
+})();
+</script>
+</body>
+</html>
